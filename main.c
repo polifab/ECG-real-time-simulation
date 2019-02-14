@@ -7,8 +7,10 @@
 #include"task.h"
 
 
-#define D 4046
-#define M 188
+#define N 2
+#define M 114
+#define n 10
+#define NR_MAX 2 //definisco il numero massimo di lettori
 
 
 // ---------- GLOBAL VARIABLES --------------
@@ -16,11 +18,15 @@
 bool	quit			=	false;
 bool	stop_graphics	=	false;			
 
-char nome_file[M];
-FILE *fp;
-float DATI[D][M];
+char 	nome_file[M];
+FILE 	*fp;
+float 	DATI[N][M];
+float 	vettore[M];
+int 	picchi[n];
+int 	bpm; 
+int 	read_count = 0;
 
-pthread_mutex_t mutex_data = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t 	mutex, rw_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int	x = 1024, y = 600, col = 4;
 int	rect_coord_x1 = 160; // x / 4
@@ -32,6 +38,8 @@ int	rect_coord_y2 = 120;
 
 void	*	draw_function();
 void	*	user_command();
+void 	* 	generatore();
+void	* 	info();
 
 
 // --------- FUNCTION PROTOTYPES -------------
@@ -49,10 +57,18 @@ int main(void)
 	if(init() != true)
 		return 1;
 	task_create(draw_function, 0, 100, 80, 20);
-	task_create(user_command,  2, 100, 80, 20);
+	task_create(generatore, 1, 100, 80, 23);
+	task_create(user_command, 2, 100, 80, 20);
+	task_create(info, 3, 100, 80, 23);
 
 	pthread_join(tid[0],NULL);
+	printf("1\n");
+	pthread_join(tid[1],NULL);
+	printf("2\n");
 	pthread_join(tid[2],NULL);
+	printf("3\n");
+	pthread_join(tid[3],NULL);
+	printf("4\n");
 
 	return 0;
 }
@@ -61,7 +77,7 @@ int main(void)
 
 void * user_command()
 {
-
+struct timespec t;
 char	key;	//Salviamo qui il carattere inserito dall'utente
 
     set_activation(2);
@@ -69,9 +85,72 @@ char	key;	//Salviamo qui il carattere inserito dall'utente
         key = readkey() & 0xFF;
         read_command(key);
 
+		printf("hai digitato %c\n", key);  
+		
         if (deadline_miss(2) == 1) printf("2!\n");     //soft real time
         wait_for_activation(2);
+		printf("Ed ha la madre allegra\n");
     }
+}
+
+
+
+void * generatore(){
+
+	int 		i = 0;
+	int 		j = 0;
+	int 		count = 0;
+	float 		casuale; 
+	
+	set_activation(0);
+	while(quit == false) {
+		
+		count = 0;
+		if(!stop_graphics){
+
+			pthread_mutex_lock(&mutex);
+
+			if(count > 2){
+			//set_activation(1);
+				for(i = 0; i < M; i++){
+					casuale = rand()/12;
+					DATI[1][i] = vettore[i] + casuale;
+				}
+				count = 0;
+				
+				for(i = 0; i < M; i++){
+					if(i < 76){
+						DATI[0][i] = DATI[0][i+38];
+					}
+					else{
+						DATI[0][i] = DATI[1][i-76];
+					}
+				}
+			}
+			else{
+				//shift
+				for(i = 0; i < M; i++){
+					if(i < 76){
+						DATI[0][i] = DATI[0][i+38];
+					}
+					else{
+						DATI[0][i] = DATI[1][i-76];
+					}
+				}
+
+				count++;
+
+			}
+		//	sleep(2);
+		//	for(i = 0; i < M; i++){
+			//printf("%.2f ", DATI[0][i]);	
+				
+		//}
+			
+			pthread_mutex_unlock(&mutex);
+		}
+		wait_for_activation(1);
+	}
 }
 
 
@@ -79,30 +158,80 @@ char	key;	//Salviamo qui il carattere inserito dall'utente
 
 void * draw_function()
 {
+	int i;
 
-int i;
-	
 	set_activation(0);
+	while(quit == false) {
+
+		if(!stop_graphics){
+
+		pthread_mutex_lock(&mutex);
+	/*	read_count++;
+		if (read_count == 1)
+						pthread_mutex_lock(&rw_mutex);
+		pthread_mutex_unlock(&mutex);
+		*/
+		for(i = 0; i < 114; i++){
+			line(screen, rect_coord_x1 + 3.333*i, 320 - (int)(140*DATI[0][i]), rect_coord_x1 + 3.333*i + 3.333, 320 - (int)(140*DATI[0][i+1]),  12);
+		}
+		
+	/*	pthread_mutex_lock(&mutex);
+		read_count--;
+		if(read_count == 0)
+						pthread_mutex_unlock(&rw_mutex);
+		*/
+		pthread_mutex_unlock(&mutex);
+		
+		if (deadline_miss(0) == 1) printf("DEADLINE MISS\n");     //soft real time
+		//printf("number of miss = %d\n", tp[0].dmiss);
+		wait_for_activation(0);
+		}
+	}
+	
+	printf("Mi sono sbloccato, no come giorgio\n");
+	return NULL;
+}
+
+
+
+void *info(){
+	
+	int n_picchi = 0;
+	int distanza_p, i;
+	float distanza_t; //distanza di punti e distanza temporale
+	
 	while(quit == false) {
 
 		if(stop_graphics){
 			wait_for_activation(0);
 			continue;
 		}
-
-		pthread_mutex_lock(&mutex_data);
-		for(i = 0; i < 144; i++){
-			line(screen, rect_coord_x1 + 3.333*i, 320 - (int)(140*DATI[0][i]), rect_coord_x1 + 3.333*i + 3.333, 320 - (int)(140*DATI[0][i+1]),  12);
+	
+/*		pthread_mutex_lock(&mutex);
+		read_count++;
+		if (read_count == 1)
+						pthread_mutex_lock(&rw_mutex);
+		pthread_mutex_unlock(&mutex);
+*/
+		for(i = 0; i < M; i++){
+			if(vettore[i] > 0.8){
+				picchi[n_picchi] = i; //salvo la posizione del picco
+				n_picchi++;
+			}
+			//calcolo la distanza di campioni tra gli ultimi due picchi, ogni campione corrisponde a 0,0131 secondi
+			distanza_p = picchi[n_picchi-1] - picchi[n_picchi-2];
+			distanza_t = distanza_p * 0.0131;
+			bpm = floor(60/distanza_t);
 		}
-		pthread_mutex_unlock(&mutex_data);
-		
-		if (deadline_miss(0) == 1) printf("DEADLINE MISS\n");     //soft real time
-		//printf("number of miss = %d\n", tp[0].dmiss);
-		wait_for_activation(0);
-	}
 
-	return NULL;
+/*			pthread_mutex_lock(&mutex);
+			read_count--;
+			if(read_count == 0)
+				pthread_mutex_unlock(&rw_mutex); */
+			pthread_mutex_unlock(&mutex);
+	}
 }
+
 
 // ----------------- FUNCTION IMPLEMENTATION ----------------
 
@@ -139,10 +268,8 @@ bool carica_matrice()
 	else {
 		int i, j = 0;
 		for(i = 0; i < M; i++){
-			for(j = 0; j < D; j++){
-				fscanf(fp, "%e,", &DATI[i][j]);
-				//printf("%.2f ", DATI[i][j]);
-			}				
+			fscanf(fp, "%e,", &DATI[0][i]);
+			printf("%.2f ", DATI[0][i]);			
 		}
 	}
 		
@@ -179,6 +306,7 @@ void read_command(char key)
 
 		case 'q':
 			quit = true;
+			printf("giorgio marleta, sei un bastardo\n");
 			break;
 
 		case 's':
