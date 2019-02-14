@@ -22,11 +22,12 @@ char 	nome_file[M];
 FILE 	*fp;
 float 	DATI[N][M];
 float 	vettore[M];
+float	aux_draw[M];
 int 	picchi[n];
 int 	bpm; 
 int 	read_count = 0;
 
-pthread_mutex_t 	mutex, rw_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t 	mutex = PTHREAD_MUTEX_INITIALIZER;//, rw_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int	x = 1024, y = 600, col = 4;
 int	rect_coord_x1 = 160; // x / 4
@@ -44,6 +45,7 @@ void	* 	info();
 
 // --------- FUNCTION PROTOTYPES -------------
 
+void	init_mutex();
 bool	init();
 bool	carica_matrice();
 int		draw_rect();
@@ -56,10 +58,10 @@ int main(void)
 {
 	if(init() != true)
 		return 1;
-	task_create(draw_function, 0, 100, 80, 20);
-	task_create(generatore, 1, 100, 80, 20);
+	task_create(draw_function, 0, 150, 80, 20);
+	task_create(generatore, 1, 200, 80, 20);
 	task_create(user_command, 2, 100, 80, 20);
-	task_create(info, 3, 100, 80, 20);
+	//task_create(info, 3, 100, 80, 20);
 
 	pthread_join(tid[0],NULL);
 	printf("1\n");
@@ -67,8 +69,8 @@ int main(void)
 	printf("2\n");
 	pthread_join(tid[2],NULL);
 	printf("3\n");
-	pthread_join(tid[3],NULL);
-	printf("4\n");
+	//pthread_join(tid[3],NULL);
+	//printf("4\n");
 
 	return 0;
 }
@@ -98,6 +100,8 @@ char	key;	//Salviamo qui il carattere inserito dall'utente
 void * generatore()
 {
 
+		
+
 	int 		i = 0;
 	int 		j = 0;
 	int 		count = 0;
@@ -109,10 +113,8 @@ void * generatore()
 	count = 0;
 	set_activation(1);
 	while(quit == false) {
-		
-		if(!stop_graphics){
 
-			pthread_mutex_lock(&mutex);
+		if(!stop_graphics){
 
 			if(count > 2){
 			//set_activation(1);
@@ -124,7 +126,11 @@ void * generatore()
 				}
 				count = 0;
 			}
+			printf("[GENERATOR] WAITING FOR MUTEX\n");
+			pthread_mutex_lock(&mutex);
 				//shift
+			//printf("[GENERATOR] DENTRO IL MUTEX\n");
+
 			for(i = 0; i < M; i++){
 				if(i < 76){
 					DATI[0][i] = DATI[0][i+38];
@@ -139,9 +145,9 @@ void * generatore()
 			count++;
 
 		}
-		for(i = 0; i < M; i++){
-			printf("%.2f \n", vettore[i]);			
-		}
+		//for(i = 0; i < M; i++){
+		//	printf("%.2f \n", vettore[i]);			
+		//}
 		//	sleep(2);
 		//	for(i = 0; i < M; i++){
 			//printf("%.2f ", DATI[0][i]);	
@@ -149,6 +155,7 @@ void * generatore()
 		//}
 			
 		pthread_mutex_unlock(&mutex);
+		printf("[GENERATOR] MUTEX UNLOCKED\n");
 		wait_for_activation(1);
 		}
 }
@@ -160,20 +167,35 @@ void * generatore()
 void * draw_function()
 {
 	int i;
-
+	clock_t t;
 	set_activation(0);
 	while(quit == false) {
-
+		t = clock();
 		if(!stop_graphics){
-
+		
+		printf("[DRAW] WAITING FOR MUTEX\n");
 		pthread_mutex_lock(&mutex);
+
+		//printf("[DRAW] DENTRO IL MUTEX\n");
 	/*	read_count++;
 		if (read_count == 1)
 						pthread_mutex_lock(&rw_mutex);
 		pthread_mutex_unlock(&mutex);
 		*/
 		for(i = 0; i < 114; i++){
-			line(screen, rect_coord_x1 + 3.333*i, 320 - (int)(140*DATI[0][i]), rect_coord_x1 + 3.333*i + 3.333, 320 - (int)(140*DATI[0][i+1]),  12);
+			//printf("[DRAW] CICLO %i\n", i);
+			aux_draw[i] = DATI[0][i];
+			//printf("[DRAW] DIO PORCO %d\n", i);
+		}
+
+		//printf("[DRAW] PRE UNLOCK A FARMI LE SEGHE DIOCANE %i\n", i);
+		pthread_mutex_unlock(&mutex);
+		printf("[DRAW] MUTEX UNLOCKED\n");
+
+		for(i = 0; i < 114; i++){
+
+			line(screen, rect_coord_x1 + 3.333*i, 320 - (int)(140*aux_draw[i]), rect_coord_x1 + 3.333*i + 3.333, 320 - (int)(140*aux_draw[i+1]),  12);
+
 		}
 		
 	/*	pthread_mutex_lock(&mutex);
@@ -181,10 +203,11 @@ void * draw_function()
 		if(read_count == 0)
 						pthread_mutex_unlock(&rw_mutex);
 		*/
-		pthread_mutex_unlock(&mutex);
-		
+
 		if (deadline_miss(0) == 1) printf("DEADLINE MISS\n");     //soft real time
 		//printf("number of miss = %d\n", tp[0].dmiss);
+		t = clock() - t;
+		printf("[CLOCK] %ld",t);
 		wait_for_activation(0);
 		}
 	}
@@ -237,11 +260,22 @@ void *info(){
 
 // ----------------- FUNCTION IMPLEMENTATION ----------------
 
+
+void init_mutex()
+{
+	if (pthread_mutex_init(&mutex, NULL) != 0) {
+        printf("\n mutex init failed\n");
+    } else {
+		printf("\n mutex init ok\n");
+	}
+}
+
 bool init()
 {
 
 char text[24];
 	
+	//init_mutex();
 	srand(time(NULL));
 	printf("RAND MAX = %d\n", RAND_MAX);
 	carica_matrice();
