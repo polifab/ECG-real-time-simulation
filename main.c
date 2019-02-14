@@ -57,9 +57,9 @@ int main(void)
 	if(init() != true)
 		return 1;
 	task_create(draw_function, 0, 100, 80, 20);
-	task_create(generatore, 1, 100, 80, 23);
+	task_create(generatore, 1, 100, 80, 20);
 	task_create(user_command, 2, 100, 80, 20);
-	task_create(info, 3, 100, 80, 23);
+	task_create(info, 3, 100, 80, 20);
 
 	pthread_join(tid[0],NULL);
 	printf("1\n");
@@ -95,17 +95,21 @@ char	key;	//Salviamo qui il carattere inserito dall'utente
 
 
 
-void * generatore(){
+void * generatore()
+{
 
 	int 		i = 0;
 	int 		j = 0;
 	int 		count = 0;
 	float 		casuale; 
-	
-	set_activation(0);
+	for(i = 0; i < M; i++){
+		casuale = rand()/12;
+		DATI[1][i] = vettore[i] + casuale;
+	}
+	count = 0;
+	set_activation(1);
 	while(quit == false) {
 		
-		count = 0;
 		if(!stop_graphics){
 
 			pthread_mutex_lock(&mutex);
@@ -113,45 +117,42 @@ void * generatore(){
 			if(count > 2){
 			//set_activation(1);
 				for(i = 0; i < M; i++){
-					casuale = rand()/12;
+					casuale = rand()%1;
 					DATI[1][i] = vettore[i] + casuale;
+					//printf("[GENERATOR] casuale = %f\n[GENERATOR] somma = %f\n", casuale, vettore[i] + casuale);
+				
 				}
 				count = 0;
-				
-				for(i = 0; i < M; i++){
-					if(i < 76){
-						DATI[0][i] = DATI[0][i+38];
-					}
-					else{
-						DATI[0][i] = DATI[1][i-76];
-					}
-				}
 			}
-			else{
 				//shift
-				for(i = 0; i < M; i++){
-					if(i < 76){
-						DATI[0][i] = DATI[0][i+38];
-					}
-					else{
-						DATI[0][i] = DATI[1][i-76];
-					}
+			for(i = 0; i < M; i++){
+				if(i < 76){
+					DATI[0][i] = DATI[0][i+38];
+					//DATI[0][75] = DATI[0][114]
 				}
-
-				count++;
-
+				else{
+					DATI[0][i] = DATI[1][i-76];
+					//DATI[0][						
+				}
 			}
+
+			count++;
+
+		}
+		for(i = 0; i < M; i++){
+			printf("%.2f \n", vettore[i]);			
+		}
 		//	sleep(2);
 		//	for(i = 0; i < M; i++){
 			//printf("%.2f ", DATI[0][i]);	
 				
 		//}
 			
-			pthread_mutex_unlock(&mutex);
-		}
+		pthread_mutex_unlock(&mutex);
 		wait_for_activation(1);
-	}
+		}
 }
+
 
 
 
@@ -199,11 +200,11 @@ void *info(){
 	int n_picchi = 0;
 	int distanza_p, i;
 	float distanza_t; //distanza di punti e distanza temporale
-	
+	set_activation(3);
 	while(quit == false) {
 
 		if(stop_graphics){
-			wait_for_activation(0);
+			wait_for_activation(3);
 			continue;
 		}
 	
@@ -229,6 +230,7 @@ void *info(){
 			if(read_count == 0)
 				pthread_mutex_unlock(&rw_mutex); */
 			pthread_mutex_unlock(&mutex);
+				wait_for_activation(3);
 	}
 }
 
@@ -239,7 +241,9 @@ bool init()
 {
 
 char text[24];
-
+	
+	srand(time(NULL));
+	printf("RAND MAX = %d\n", RAND_MAX);
 	carica_matrice();
     if(allegro_init() != 0)
 		return false;
@@ -269,11 +273,12 @@ bool carica_matrice()
 		int i, j = 0;
 		for(i = 0; i < M; i++){
 			fscanf(fp, "%e,", &DATI[0][i]);
-			printf("%.2f ", DATI[0][i]);			
+			vettore[i] = DATI[0][i];
+			//printf("%.2f %.2f\n", DATI[0][i], vettore[i]);			
 		}
-	}
-		
+	}	
 	fclose(fp);
+	
 	return true;
 }
 
