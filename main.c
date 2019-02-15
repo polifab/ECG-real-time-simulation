@@ -58,8 +58,8 @@ int main(void)
 {
 	if(init() != true)
 		return 1;
-	task_create(draw_function, 0, 330, 80, 20);
-	task_create(generatore, 1, 330, 80, 20);
+	task_create(draw_function, 0, 200, 80, 20);
+	task_create(generatore, 1, 200, 80, 20);
 	task_create(user_command, 2, 100, 80, 20);
 	//task_create(info, 3, 100, 80, 20);
 
@@ -114,7 +114,7 @@ void * generatore()
 		if(!stop_graphics){
 			pthread_mutex_lock(&mutex);
 
-			if(count > 2){
+			if(count > 11){
 				for(i = 0; i < M; i++){ 
 					casuale = rand()%10;
 					DATI[1][i] = vettore[i] + (casuale/280);
@@ -130,12 +130,12 @@ void * generatore()
 			//printf("[GENERATOR] DENTRO IL MUTEX\n");
 
 			for(i = 0; i < M; i++){
-				if(i < 100){
-					DATI[0][i] = DATI[0][i+20];
+				if(i < 110){
+					DATI[0][i] = DATI[0][i+10];
 					//DATI[0][75] = DATI[0][120]
 				}
 				else{
-					DATI[0][i] = DATI[1][i-190];
+					DATI[0][i] = DATI[1][i-200];
 					//DATI[0][						
 				}
 			}
