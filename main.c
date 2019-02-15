@@ -186,7 +186,6 @@ int i;
 				line(screen, rect_coord_x1 + 4*i, 320 - (int)(140*aux_draw[i]), rect_coord_x1 + 4*i + 4, 320 - (int)(140*aux_draw[i+1]),  12);
 
 			}
-			
 
 		} 
 	
@@ -249,7 +248,8 @@ bool init()
 {
 
 char text[24];
-	
+char value_x[180];
+
 	//init_mutex();
 	srand(time(NULL));
 
@@ -264,10 +264,19 @@ char text[24];
     enable_hardware_cursor();
     show_mouse(screen);
 	clear_to_color(screen, makecol(0, 0, 0));
+
 	draw_rect();
+
 	sprintf(text, "Press 'q' to exit");
 	textout_centre_ex(screen, font, text, 320, 100, 15, -1);
-	
+	sprintf(value_x, "Press 's' to stop the graphics and press 'r' to resume");
+	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 15, 15, -1);
+	sprintf(value_x, "Warnings");
+	textout_centre_ex(screen, font, value_x, rect_coord_x2+180, rect_coord_y2 -15 , 4, -1);
+
+	rectfill(screen, rect_coord_x2 + 60, rect_coord_y1, rect_coord_x2 + 300, rect_coord_y2, 15);
+	rect(screen, rect_coord_x2 + 60, rect_coord_y1, rect_coord_x2 + 300, rect_coord_y2, 4);
+
 	return true;
 }
 
@@ -298,16 +307,11 @@ bool carica_matrice()
 int draw_rect()
 {
 
-char value_x[16];
-char value_y[16];
-
 	rectfill(screen, rect_coord_x1, rect_coord_y1, rect_coord_x2, rect_coord_y2, 15);
-	rect(screen, rect_coord_x1, rect_coord_y1, rect_coord_x2, rect_coord_y2, 14);
+	rect(screen, rect_coord_x1, rect_coord_y1, rect_coord_x2, rect_coord_y2, 4);
 	
 	for(int i = 0; i < 47; i++){
 		line(screen, rect_coord_x1 + 10 + i*10, rect_coord_y1, rect_coord_x1 + 10 + i*10, rect_coord_y2, 14); // 11
-		sprintf(value_x, "%d", i+1);
-		textout_centre_ex(screen, font, value_x, rect_coord_x1 + 10 + i*10, rect_coord_y1 + 5, 1, -1);
 		if(i > 34)
 			continue;
 		line(screen, rect_coord_x1, rect_coord_y1 - 10 - i*10, rect_coord_x2, rect_coord_y1 - 10 - i*10,  14);
