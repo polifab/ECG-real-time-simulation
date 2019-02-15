@@ -13,21 +13,30 @@
 //#define NR_MAX 2 //definisco il numero massimo di lettori
 
 
-// ---------- GLOBAL VARIABLES --------------
+// ************* GLOBAL VARIABLES *****************
 
-bool	quit			=	false;
-bool	stop_graphics	=	false;			
+bool	quit			=	false;	//	variabile di terminazione 
+bool	stop_graphics	=	true;	//	variabile per lo stop dei thread produttori e consumatori
 
-char 	nome_file[M];
+//	gruppo di variabile necessari per la lettura dei dati dai file
+
+char 	nome_file[M];				
 FILE 	*fp;
 float 	DATI[N][M];
 float 	vettore[M];
 float	aux_draw[M];
-int 	picchi[n];
+
+//	gruppo per l'esecuzione dei calcoli		
+
+int 	picchi[n];				
 int 	bpm; 
 int 	read_count = 0;
 
-pthread_mutex_t 	mutex = PTHREAD_MUTEX_INITIALIZER;//, rw_mutex = PTHREAD_MUTEX_INITIALIZER;
+//	mutex
+
+pthread_mutex_t 	mutex = PTHREAD_MUTEX_INITIALIZER;
+
+//	gruppo variabili per la grafica
 
 int	x = 1024, y = 600, col = 4;
 int	rect_coord_x1 = 160; // x / 4
@@ -35,33 +44,37 @@ int	rect_coord_x2 = 640; // 3/4 * x
 int	rect_coord_y1 = 480;
 int	rect_coord_y2 = 120;
 
-// ---------- TASK PROTOTYPES ----------------
+// ************* TASK PROTOTYPES ****************************
 
-void	*	draw_function();
-void	*	user_command();
-void 	* 	generatore();
-void	* 	info();
+void	*	draw_function();	//	task dedito ad aggiornare la grafica (consumatore)
+void	*	user_command();		//	task dedito alla lettura dei comandi dell'utente
+void 	* 	generatore();		//	task dedito alla generazione dei valori dell'ecg (produttore)
+void	* 	info();				//	task dedito ai calcoli relativi l'analisi dell'ecg
 
+// ************* FUNCTION PROTOTYPES **********************
 
-// --------- FUNCTION PROTOTYPES -------------
-
-void	init_mutex();
-bool	init();
+bool	init();					//	funzione di inizializzazione di dati, variabili e grafica
+void	init_mutex();					
 bool	carica_matrice();
-int		draw_rect();
-void	read_command(char key);
+int		draw_rect();			//	funzione per il disegno del rettangolo del grafico
+void	read_command(char key);	//	interprete dei comandi inseriti dall'utente
 
-
-// --------- MAIN FUNCTION -------------------
+// ******************************** MAIN FUNCTION *********************************
 
 int main(void)
 {
+
 	if(init() != true)
 		return 1;
-	task_create(draw_function, 0, 200, 80, 20);
-	task_create(generatore, 1, 200, 80, 20);
+
+	// tasks creation
+
+	task_create(draw_function, 0, 150, 80, 20);
+	task_create(generatore, 1, 150, 80, 20);
 	task_create(user_command, 2, 100, 80, 20);
 	//task_create(info, 3, 100, 80, 20);
+
+	// tasks joining
 
 	pthread_join(tid[0],NULL);
 	printf("1\n");
@@ -75,14 +88,15 @@ int main(void)
 	return 0;
 }
 
-// -------- TASK IMPLEMENTATION --------------
+//***************************** TASK IMPLEMENTATION **********************************
 
 void * user_command()
 {
-struct timespec t;
+
 char	key;	//Salviamo qui il carattere inserito dall'utente
 
     set_activation(2);
+
     while (quit == false) {
         key = readkey() & 0xFF;
         read_command(key);
@@ -91,22 +105,20 @@ char	key;	//Salviamo qui il carattere inserito dall'utente
 		
         if (deadline_miss(2) == 1) printf("2!\n");     //soft real time
         wait_for_activation(2);
-		printf("Ed ha la madre allegra\n");
     }
 }
 
-
+//-------------------------------------------------------------
 
 void * generatore()
 {
 
-		
-
-	int 		i = 0;
-	int 		j = 0;
-	int 		count = 0;
-	float 		casuale; 
-	count = 0;
+int 		i = 0;
+int 		j = 0;
+int 		count = 0;
+float 		casuale; 
+count = 0;
+	
 	set_activation(1);
 	
 	while(quit == false) {
@@ -118,95 +130,85 @@ void * generatore()
 				for(i = 0; i < M; i++){ 
 					casuale = rand()%10;
 					DATI[1][i] = vettore[i] + (casuale/280);
-
-					//printf("[GENERATOR] casuale = %f\n[GENERATOR] somma = %f\n", casuale, vettore[i] + casuale);
 				
 				}
 				count = 0;
 			}
-			printf("[GENERATOR] WAITING FOR MUTEX\n");
+			//printf("[GENERATOR] WAITING FOR MUTEX\n");
 			
 				//shift
-			//printf("[GENERATOR] DENTRO IL MUTEX\n");
 
 			for(i = 0; i < M; i++){
 				if(i < 110){
 					DATI[0][i] = DATI[0][i+10];
-					//DATI[0][75] = DATI[0][120]
 				}
 				else{
-					DATI[0][i] = DATI[1][i-200];
-					//DATI[0][						
+					DATI[0][i] = DATI[1][i-215];
 				}
 			}
 
 			count++;
 
 		}
-
-		for(i = 0; i < M; i++){
-			aux_draw[i] = DATI[0][i];
-		}
 		
 			
 		pthread_mutex_unlock(&mutex);
-		printf("[GENERATOR] MUTEX UNLOCKED\n");
+		//printf("[GENERATOR] MUTEX UNLOCKED\n");
 		wait_for_activation(1);
 		}
 }
 
-
-
-
+//------------------------------------------------------------
 
 void * draw_function()
 {
-	int i;
-	//clock_t t;
+
+int i;
+
 	set_activation(0);
+
 	while(quit == false) {
-		//t = clock();
-		if(!stop_graphics){
+
+		if(!stop_graphics){ //se l'utente setta a true stop_graphics blocca
 		
-		printf("[DRAW] WAITING FOR MUTEX\n");
-		pthread_mutex_lock(&mutex);
+			draw_rect(); // cancello il grafico precedente
 
-		//printf("[DRAW] DENTRO IL MUTEX\n");
-		
+			//printf("[DRAW] WAITING FOR MUTEX\n");
+			pthread_mutex_lock(&mutex); // sezione critica, lettura variabile condivisa DATI
+			for(i = 0; i < M; i++){
+				aux_draw[i] = DATI[0][i];
+			}
+			pthread_mutex_unlock(&mutex);
+			//printf("[DRAW] MUTEX UNLOCKED\n");
 
-		//printf("[DRAW] PRE UNLOCK A FARMI LE SEGHE DIOCANE %i\n", i);
-		
-		//printf("[DRAW] MUTEX UNLOCKED\n");
+			for(i = 0; i < M; i++){
+				
+				line(screen, rect_coord_x1 + 4*i, 320 - (int)(140*aux_draw[i]), rect_coord_x1 + 4*i + 4, 320 - (int)(140*aux_draw[i+1]),  12);
 
-		draw_rect();
-
-		for(i = 0; i < M; i++){
+			}
 			
-			line(screen, rect_coord_x1 + 3.333*i, 320 - (int)(140*aux_draw[i]), rect_coord_x1 + 3.333*i + 3.333, 320 - (int)(140*aux_draw[i+1]),  12);
 
-		}
-		
+		} 
+	
 		if (deadline_miss(0) == 1) printf("DEADLINE MISS\n");     //soft real time
-		//printf("number of miss = %d\n", tp[0].dmiss);
-		//t = clock() - t;
-		//printf("[CLOCK] %ld",t);
-		pthread_mutex_unlock(&mutex);
-		printf("[DRAW] MUTEX UNLOCKED\n");
+
 		wait_for_activation(0);
-		}
 	}
 	
 	return NULL;
 }
 
+//-------------------------------------------------------
 
-
-void *info(){
+void *info()
+{
 	
-	int n_picchi = 0;
-	int distanza_p, i;
-	float distanza_t; //distanza di punti e distanza temporale
+int n_picchi = 0;
+int distanza_p, i;
+float distanza_t; //distanza di punti e distanza temporale
+
 	set_activation(3);
+
 	while(quit == false) {
 
 		if(stop_graphics){
@@ -231,7 +233,7 @@ void *info(){
 }
 
 
-// ----------------- FUNCTION IMPLEMENTATION ----------------
+// ********************** FUNCTIONS IMPLEMENTATION *****************************
 
 
 void init_mutex()
@@ -250,7 +252,7 @@ char text[24];
 	
 	//init_mutex();
 	srand(time(NULL));
-	printf("RAND MAX = %d\n", RAND_MAX);
+
 	carica_matrice();
     if(allegro_init() != 0)
 		return false;
@@ -268,6 +270,8 @@ char text[24];
 	
 	return true;
 }
+
+//--------------------------
 
 bool carica_matrice()
 {
@@ -289,15 +293,17 @@ bool carica_matrice()
 	return true;
 }
 
+//-------------------------
 
 int draw_rect()
 {
+
+char value_x[16];
+char value_y[16];
+
 	rectfill(screen, rect_coord_x1, rect_coord_y1, rect_coord_x2, rect_coord_y2, 15);
-
 	rect(screen, rect_coord_x1, rect_coord_y1, rect_coord_x2, rect_coord_y2, 14);
-
-	char value_x[16];
-	char value_y[16];
+	
 	for(int i = 0; i < 47; i++){
 		line(screen, rect_coord_x1 + 10 + i*10, rect_coord_y1, rect_coord_x1 + 10 + i*10, rect_coord_y2, 14); // 11
 		sprintf(value_x, "%d", i+1);
@@ -310,7 +316,7 @@ int draw_rect()
 	return 0;
 }
 
-
+//-------------------------
 
 void read_command(char key)
 {
