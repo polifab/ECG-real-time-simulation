@@ -8,7 +8,7 @@
 
 
 #define N 2
-#define M 114
+#define M 120
 #define n 10
 //#define NR_MAX 2 //definisco il numero massimo di lettori
 
@@ -58,8 +58,8 @@ int main(void)
 {
 	if(init() != true)
 		return 1;
-	task_create(draw_function, 0, 100, 80, 20);
-	task_create(generatore, 1, 100, 80, 20);
+	task_create(draw_function, 0, 330, 80, 20);
+	task_create(generatore, 1, 330, 80, 20);
 	task_create(user_command, 2, 100, 80, 20);
 	//task_create(info, 3, 100, 80, 20);
 
@@ -115,12 +115,10 @@ void * generatore()
 			pthread_mutex_lock(&mutex);
 
 			if(count > 2){
-			//set_activation(1);
 				for(i = 0; i < M; i++){ 
 					casuale = rand()%10;
-					DATI[1][i] = vettore[i] + (casuale/150);
-					
-					//printf("%.2f ", vettore[i]);
+					DATI[1][i] = vettore[i] + (casuale/280);
+
 					//printf("[GENERATOR] casuale = %f\n[GENERATOR] somma = %f\n", casuale, vettore[i] + casuale);
 				
 				}
@@ -132,12 +130,12 @@ void * generatore()
 			//printf("[GENERATOR] DENTRO IL MUTEX\n");
 
 			for(i = 0; i < M; i++){
-				if(i < 76){
-					DATI[0][i] = DATI[0][i+38];
-					//DATI[0][75] = DATI[0][114]
+				if(i < 100){
+					DATI[0][i] = DATI[0][i+20];
+					//DATI[0][75] = DATI[0][120]
 				}
 				else{
-					DATI[0][i] = DATI[1][i-76];
+					DATI[0][i] = DATI[1][i-190];
 					//DATI[0][						
 				}
 			}
@@ -145,14 +143,9 @@ void * generatore()
 			count++;
 
 		}
-		//for(i = 0; i < M; i++){
-		//	printf("%.2f \n", vettore[i]);			
-		//}
-		
-		for(i = 0; i < 114; i++){
-			//printf("[DRAW] CICLO %i\n", i);
+
+		for(i = 0; i < M; i++){
 			aux_draw[i] = DATI[0][i];
-			//printf("[DRAW] DIO PORCO %d\n", i);
 		}
 		
 			
@@ -179,11 +172,6 @@ void * draw_function()
 		pthread_mutex_lock(&mutex);
 
 		//printf("[DRAW] DENTRO IL MUTEX\n");
-	/*	read_count++;
-		if (read_count == 1)
-						pthread_mutex_lock(&rw_mutex);
-		pthread_mutex_unlock(&mutex);
-		*/
 		
 
 		//printf("[DRAW] PRE UNLOCK A FARMI LE SEGHE DIOCANE %i\n", i);
@@ -192,18 +180,12 @@ void * draw_function()
 
 		draw_rect();
 
-		for(i = 0; i < 114; i++){
+		for(i = 0; i < M; i++){
 			
 			line(screen, rect_coord_x1 + 3.333*i, 320 - (int)(140*aux_draw[i]), rect_coord_x1 + 3.333*i + 3.333, 320 - (int)(140*aux_draw[i+1]),  12);
 
 		}
 		
-	/*	pthread_mutex_lock(&mutex);
-		read_count--;
-		if(read_count == 0)
-						pthread_mutex_unlock(&rw_mutex);
-		*/
-
 		if (deadline_miss(0) == 1) printf("DEADLINE MISS\n");     //soft real time
 		//printf("number of miss = %d\n", tp[0].dmiss);
 		//t = clock() - t;
@@ -232,12 +214,6 @@ void *info(){
 			continue;
 		}
 	
-/*		pthread_mutex_lock(&mutex);
-		read_count++;
-		if (read_count == 1)
-						pthread_mutex_lock(&rw_mutex);
-		pthread_mutex_unlock(&mutex);
-*/
 		for(i = 0; i < M; i++){
 			if(vettore[i] > 0.9){
 				picchi[n_picchi] = i; //salvo la posizione del picco
@@ -249,10 +225,6 @@ void *info(){
 			bpm = floor(60/distanza_t);
 		}
 
-/*			pthread_mutex_lock(&mutex);
-			read_count--;
-			if(read_count == 0)
-				pthread_mutex_unlock(&rw_mutex); */
 			pthread_mutex_unlock(&mutex);
 				wait_for_activation(3);
 	}
@@ -346,7 +318,6 @@ void read_command(char key)
 
 		case 'q':
 			quit = true;
-			printf("giorgio marleta, sei un bastardo\n");
 			break;
 
 		case 's':
