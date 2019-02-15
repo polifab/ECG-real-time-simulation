@@ -155,11 +155,6 @@ void * generatore()
 			//printf("[DRAW] DIO PORCO %d\n", i);
 		}
 		
-		
-		//	for(i = 0; i < M; i++){
-			//printf("%.2f ", DATI[0][i]);	
-				
-		//}
 			
 		pthread_mutex_unlock(&mutex);
 		printf("[GENERATOR] MUTEX UNLOCKED\n");
