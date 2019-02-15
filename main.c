@@ -10,7 +10,7 @@
 #define N 2
 #define M 114
 #define n 10
-#define NR_MAX 2 //definisco il numero massimo di lettori
+//#define NR_MAX 2 //definisco il numero massimo di lettori
 
 
 // ---------- GLOBAL VARIABLES --------------
@@ -69,7 +69,7 @@ int main(void)
 	printf("2\n");
 	pthread_join(tid[2],NULL);
 	printf("3\n");
-	//pthread_join(tid[3],NULL);
+	pthread_join(tid[3],NULL);
 	//printf("4\n");
 
 	return 0;
@@ -106,28 +106,28 @@ void * generatore()
 	int 		j = 0;
 	int 		count = 0;
 	float 		casuale; 
-	for(i = 0; i < M; i++){
-		casuale = rand()/12;
-		DATI[1][i] = vettore[i] + casuale;
-	}
 	count = 0;
 	set_activation(1);
+	
 	while(quit == false) {
 
 		if(!stop_graphics){
+			pthread_mutex_lock(&mutex);
 
 			if(count > 2){
 			//set_activation(1);
-				for(i = 0; i < M; i++){
-					casuale = rand()%1;
-					DATI[1][i] = vettore[i] + casuale;
+				for(i = 0; i < M; i++){ 
+					casuale = rand()%10;
+					DATI[1][i] = vettore[i] + (casuale/150);
+					
+					//printf("%.2f ", vettore[i]);
 					//printf("[GENERATOR] casuale = %f\n[GENERATOR] somma = %f\n", casuale, vettore[i] + casuale);
 				
 				}
 				count = 0;
 			}
 			printf("[GENERATOR] WAITING FOR MUTEX\n");
-			pthread_mutex_lock(&mutex);
+			
 				//shift
 			//printf("[GENERATOR] DENTRO IL MUTEX\n");
 
@@ -148,7 +148,14 @@ void * generatore()
 		//for(i = 0; i < M; i++){
 		//	printf("%.2f \n", vettore[i]);			
 		//}
-		//	sleep(2);
+		
+		for(i = 0; i < 114; i++){
+			//printf("[DRAW] CICLO %i\n", i);
+			aux_draw[i] = DATI[0][i];
+			//printf("[DRAW] DIO PORCO %d\n", i);
+		}
+		
+		
 		//	for(i = 0; i < M; i++){
 			//printf("%.2f ", DATI[0][i]);	
 				
@@ -182,18 +189,14 @@ void * draw_function()
 						pthread_mutex_lock(&rw_mutex);
 		pthread_mutex_unlock(&mutex);
 		*/
-		for(i = 0; i < 114; i++){
-			//printf("[DRAW] CICLO %i\n", i);
-			aux_draw[i] = DATI[0][i];
-			//printf("[DRAW] DIO PORCO %d\n", i);
-		}
+		
 
 		//printf("[DRAW] PRE UNLOCK A FARMI LE SEGHE DIOCANE %i\n", i);
-		pthread_mutex_unlock(&mutex);
-		printf("[DRAW] MUTEX UNLOCKED\n");
+		
+		//printf("[DRAW] MUTEX UNLOCKED\n");
 
 		for(i = 0; i < 114; i++){
-
+			
 			line(screen, rect_coord_x1 + 3.333*i, 320 - (int)(140*aux_draw[i]), rect_coord_x1 + 3.333*i + 3.333, 320 - (int)(140*aux_draw[i+1]),  12);
 
 		}
@@ -208,11 +211,11 @@ void * draw_function()
 		//printf("number of miss = %d\n", tp[0].dmiss);
 		t = clock() - t;
 		printf("[CLOCK] %ld",t);
+		pthread_mutex_unlock(&mutex);
 		wait_for_activation(0);
 		}
 	}
 	
-	printf("Mi sono sbloccato, no come giorgio\n");
 	return NULL;
 }
 
@@ -238,7 +241,7 @@ void *info(){
 		pthread_mutex_unlock(&mutex);
 */
 		for(i = 0; i < M; i++){
-			if(vettore[i] > 0.8){
+			if(vettore[i] > 0.9){
 				picchi[n_picchi] = i; //salvo la posizione del picco
 				n_picchi++;
 			}
@@ -307,10 +310,10 @@ bool carica_matrice()
 		int i, j = 0;
 		for(i = 0; i < M; i++){
 			fscanf(fp, "%e,", &DATI[0][i]);
-			vettore[i] = DATI[0][i];
-			//printf("%.2f %.2f\n", DATI[0][i], vettore[i]);			
+			vettore[i] = DATI[0][i];		
 		}
 	}	
+
 	fclose(fp);
 	
 	return true;
@@ -327,8 +330,8 @@ int draw_rect()
 	char value_y[16];
 	for(int i = 0; i < 47; i++){
 		line(screen, rect_coord_x1 + 10 + i*10, rect_coord_y1, rect_coord_x1 + 10 + i*10, rect_coord_y2, 14); // 11
-		//sprintf(value_x, "%d", i+1);
-		//textout_centre_ex(screen, font, value_x, rect_coord_x1 + 10 + i*10, rect_coord_y1 + 5, 1, -1);
+		sprintf(value_x, "%d", i+1);
+		textout_centre_ex(screen, font, value_x, rect_coord_x1 + 10 + i*10, rect_coord_y1 + 5, 1, -1);
 		if(i > 34)
 			continue;
 		line(screen, rect_coord_x1, rect_coord_y1 - 10 - i*10, rect_coord_x2, rect_coord_y1 - 10 - i*10,  14);
