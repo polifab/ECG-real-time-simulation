@@ -58,8 +58,8 @@ int main(void)
 {
 	if(init() != true)
 		return 1;
-	task_create(draw_function, 0, 150, 80, 20);
-	task_create(generatore, 1, 200, 80, 20);
+	task_create(draw_function, 0, 100, 80, 20);
+	task_create(generatore, 1, 100, 80, 20);
 	task_create(user_command, 2, 100, 80, 20);
 	//task_create(info, 3, 100, 80, 20);
 
@@ -69,7 +69,7 @@ int main(void)
 	printf("2\n");
 	pthread_join(tid[2],NULL);
 	printf("3\n");
-	pthread_join(tid[3],NULL);
+	//pthread_join(tid[3],NULL);
 	//printf("4\n");
 
 	return 0;
@@ -169,10 +169,10 @@ void * generatore()
 void * draw_function()
 {
 	int i;
-	clock_t t;
+	//clock_t t;
 	set_activation(0);
 	while(quit == false) {
-		t = clock();
+		//t = clock();
 		if(!stop_graphics){
 		
 		printf("[DRAW] WAITING FOR MUTEX\n");
@@ -190,6 +190,8 @@ void * draw_function()
 		
 		//printf("[DRAW] MUTEX UNLOCKED\n");
 
+		draw_rect();
+
 		for(i = 0; i < 114; i++){
 			
 			line(screen, rect_coord_x1 + 3.333*i, 320 - (int)(140*aux_draw[i]), rect_coord_x1 + 3.333*i + 3.333, 320 - (int)(140*aux_draw[i+1]),  12);
@@ -204,9 +206,10 @@ void * draw_function()
 
 		if (deadline_miss(0) == 1) printf("DEADLINE MISS\n");     //soft real time
 		//printf("number of miss = %d\n", tp[0].dmiss);
-		t = clock() - t;
-		printf("[CLOCK] %ld",t);
+		//t = clock() - t;
+		//printf("[CLOCK] %ld",t);
 		pthread_mutex_unlock(&mutex);
+		printf("[DRAW] MUTEX UNLOCKED\n");
 		wait_for_activation(0);
 		}
 	}
