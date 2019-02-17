@@ -17,6 +17,8 @@
 
 bool	quit			=	false;	//	variabile di terminazione 
 bool	stop_graphics	=	true;	//	variabile per lo stop dei thread produttori e consumatori
+bool	fibrillation	=	false;
+
 
 //	gruppo di variabile necessari per la lettura dei dati dai file
 
@@ -117,42 +119,49 @@ int 		i = 0;
 int 		j = 0;
 int 		count = 0;
 float 		casuale; 
-count = 0;
 	
 	set_activation(1);
 	
 	while(quit == false) {
 
 		if(!stop_graphics){
+
 			pthread_mutex_lock(&mutex);
 
 			if(count > 11){
-				for(i = 0; i < M; i++){ 
-					casuale = rand()%10;
-					DATI[1][i] = vettore[i] + (casuale/280);
+				//printf("[COUNT %d]\n", count);
+				for(i = 0; i < M; i++){
+					if(fibrillation) 
+						casuale = rand()%10;
+					else
+						casuale = 0;
+					DATI[1][i] = vettore[i] + (casuale/100);
 				
 				}
 				count = 0;
 			}
 			//printf("[GENERATOR] WAITING FOR MUTEX\n");
 			
-				//shift
+			//shift
 
 			for(i = 0; i < M; i++){
 				if(i < 110){
-					DATI[0][i] = DATI[0][i+10];
+					DATI[0][i] = DATI[0][i + 10];
 				}
 				else{
-					DATI[0][i] = DATI[1][i-215];
+					DATI[0][i] = DATI[1][i - 110 + (count * 10)];
 				}
 			}
 
 			count++;
-
+/*
+			for(i = 0; i < M; i++){
+				DATI[1][i] = DATI[1][i+10];
+			}
+*/					
+			pthread_mutex_unlock(&mutex);
 		}
 		
-			
-		pthread_mutex_unlock(&mutex);
 		//printf("[GENERATOR] MUTEX UNLOCKED\n");
 		wait_for_activation(1);
 		}
@@ -271,6 +280,8 @@ char value_x[180];
 	textout_centre_ex(screen, font, text, 320, 100, 15, -1);
 	sprintf(value_x, "Press 's' to stop the graphics and press 'r' to resume");
 	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 15, 15, -1);
+	sprintf(value_x, "Press 'f' to start/stop fibrillation");
+	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 40, 15, -1);
 	sprintf(value_x, "Warnings");
 	textout_centre_ex(screen, font, value_x, rect_coord_x2+180, rect_coord_y2 -15 , 4, -1);
 
@@ -293,7 +304,11 @@ bool carica_matrice()
 		int i, j = 0;
 		for(i = 0; i < M; i++){
 			fscanf(fp, "%e,", &DATI[0][i]);
-			vettore[i] = DATI[0][i];		
+			if(i < 20)
+				vettore[i] = 0.1;
+			else
+				vettore[i] = DATI[0][i];				
+			DATI[1][i] = vettore[i];		
 		}
 	}	
 
@@ -331,11 +346,15 @@ void read_command(char key)
 			break;
 
 		case 's':
-			stop_graphics = true;
+			stop_graphics	=	true;
 			break;
 		
 		case 'r':
-			stop_graphics = false;
+			stop_graphics	=	false;
+			break;
+
+		case 'f':
+			fibrillation	=	!fibrillation;
 			break;
 
 		default:
