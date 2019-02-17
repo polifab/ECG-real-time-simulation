@@ -137,7 +137,9 @@ float 		casuale;
 					else
 						casuale = 0;
 					DATI[1][i] = vettore[i] + (casuale/100);
-				
+					if(tachycardia && (i > 20 && i < 40)){
+						DATI[1][i] = DATI[1][i + 70];				
+					}
 				}
 				count = 0;
 			}
