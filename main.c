@@ -18,7 +18,8 @@
 bool	quit			=	false;	//	variabile di terminazione 
 bool	stop_graphics	=	true;	//	variabile per lo stop dei thread produttori e consumatori
 bool	fibrillation	=	false;
-
+bool	tachycardia		=	false;
+bool	arrhythmia		=	false;
 
 //	gruppo di variabile necessari per la lettura dei dati dai file
 
@@ -304,7 +305,7 @@ bool carica_matrice()
 		int i, j = 0;
 		for(i = 0; i < M; i++){
 			fscanf(fp, "%e,", &DATI[0][i]);
-			if(i < 20)
+			if(i < 10)
 				vettore[i] = 0.1;
 			else
 				vettore[i] = DATI[0][i];				
@@ -356,6 +357,13 @@ void read_command(char key)
 		case 'f':
 			fibrillation	=	!fibrillation;
 			break;
+
+		case 'a':
+			arrhythmia		=	!arrhythmia;
+			break;
+
+		case 't':
+			tachycardia		=	!tachycardia;
 
 		default:
 			break;
