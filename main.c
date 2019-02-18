@@ -156,7 +156,7 @@ float 		casuale;
 					DATI[0][i] = DATI[0][i + 10];
 				}
 				else{
-					if(tachycardia){
+					if(tachycardia){ // FIXME
 						DATI[0][i] = samp[i - 110 + (count * 10)];
 					} else{
 						DATI[0][i] = DATI[1][i - 110 + (count * 10)];
