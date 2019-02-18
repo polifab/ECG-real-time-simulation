@@ -10,7 +10,6 @@
 #define N 2
 #define M 120
 #define n 10
-//#define NR_MAX 2 //definisco il numero massimo di lettori
 
 
 // ************* GLOBAL VARIABLES *****************
@@ -212,31 +211,50 @@ void *info()
 {
 	
 int n_picchi = 0;
-int distanza_p, i;
+int distanza_p, i, counter = 0;
 float distanza_t; //distanza di punti e distanza temporale
-
+char text[24];
+bool picco_rilevato = false; 
+	
 	set_activation(3);
 
 	while(quit == false) {
 
-		if(stop_graphics){
+		if(!stop_graphics){
 			wait_for_activation(3);
-			continue;
-		}
 	
-		for(i = 0; i < M; i++){
-			if(vettore[i] > 0.9){
-				picchi[n_picchi] = i; //salvo la posizione del picco
-				n_picchi++;
+		for(i = 0; i < 10; i++){
+			if(DATI[0][i] > 0.94){
+				picchi[1] = i + counter;
+				picco_rilevato = true;
+				break;
 			}
-			//calcolo la distanza di campioni tra gli ultimi due picchi, ogni campione corrisponde a 0,0131 secondi
-			distanza_p = picchi[n_picchi-1] - picchi[n_picchi-2];
-			distanza_t = distanza_p * 0.0131;
-			bpm = floor(60/distanza_t);
 		}
-
+			
+			if(picco_rilevato){
+			//calcolo la distanza di campioni tra gli ultimi due picchi, ogni campione corrisponde a 0,0141 secondi
+			distanza_p = picchi[1] - picchi[0];
+			distanza_t = distanza_p * 0.0141;
+			bpm = floor(60/distanza_t);
+			
+			printf("BPM: %d\n", bpm);
+				
+			rectfill(screen, rect_coord_x1-90, rect_coord_y2-4, rect_coord_x1, rect_coord_y2+8, 0);
+				
+			sprintf(text, "%d", bpm);
+			textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2, 11, -1);
+		
+			picchi[0] = picchi[1] - counter;
+			
+			
+			counter = 0;
 			pthread_mutex_unlock(&mutex);
-				wait_for_activation(3);
+			wait_for_activation(3);
+			}
+			else counter = counter + 10;
+			
+			picco_rilevato = false;
+		}	
 	}
 }
 
@@ -278,10 +296,16 @@ char value_x[180];
 
 	sprintf(text, "Press 'q' to exit");
 	textout_centre_ex(screen, font, text, 320, 100, 15, -1);
+	sprintf(text, "BPM:");
+	textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2-15, 10, -1);
 	sprintf(value_x, "Press 's' to stop the graphics and press 'r' to resume");
 	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 15, 15, -1);
 	sprintf(value_x, "Press 'f' to start/stop fibrillation");
 	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 40, 15, -1);
+	sprintf(value_x, "Press 't' to start/stop tachycardia");
+	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 60, 15, -1);
+	sprintf(value_x, "Press 'a' to start/stop arrhythmia");
+	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 80, 15, -1);
 	sprintf(value_x, "Warnings");
 	textout_centre_ex(screen, font, value_x, rect_coord_x2+180, rect_coord_y2 -15 , 4, -1);
 
