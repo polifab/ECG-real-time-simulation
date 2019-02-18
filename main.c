@@ -73,8 +73,8 @@ int main(void)
 
 	// tasks creation
 
-	task_create(draw_function, 0, 150, 80, 20);
-	task_create(generatore, 1, 150, 80, 20);
+	task_create(draw_function, 0, 100, 300, 20);
+	task_create(generatore, 1, 100, 300, 20);
 	task_create(user_command, 2, 100, 80, 20);
 	//task_create(info, 3, 100, 80, 20);
 
@@ -138,19 +138,13 @@ float 		casuale;
 					else
 						casuale = 0;
 					DATI[1][i] = vettore[i] + (casuale/100);
-					/*if(tachycardia && (i > 20 && i < 40)){
-						DATI[1][i] = DATI[1][i + 70];				
-					}*/
 					if(tachycardia){
 						sampler();
 					}
 				}
 				count = 0;
 			}
-			//printf("[GENERATOR] WAITING FOR MUTEX\n");
-			
 			//shift
-
 			for(i = 0; i < M; i++){
 				if(i < 110){
 					DATI[0][i] = DATI[0][i + 10];
@@ -164,15 +158,10 @@ float 		casuale;
 				}
 			}
 
-			count++;
-/*
-			for(i = 0; i < M; i++){
-				DATI[1][i] = DATI[1][i+10];
-			}
-*/					
+			count++;				
 			pthread_mutex_unlock(&mutex);
 		}
-		
+		if (deadline_miss(1) == 1) printf("DEADLINE MISS GENERATORE\n");     //soft real time
 		//printf("[GENERATOR] MUTEX UNLOCKED\n");
 		wait_for_activation(1);
 		}
@@ -209,7 +198,7 @@ int i;
 
 		} 
 	
-		if (deadline_miss(0) == 1) printf("DEADLINE MISS\n");     //soft real time
+		if (deadline_miss(0) == 1) printf("DEADLINE MISS DRAW\n");     //soft real time
 
 		wait_for_activation(0);
 	}
