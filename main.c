@@ -28,6 +28,7 @@ FILE 	*fp;
 float 	DATI[N][M];
 float 	vettore[M];
 float	aux_draw[M];
+float	samp[M];
 
 //	gruppo per l'esecuzione dei calcoli		
 
@@ -61,7 +62,7 @@ void	init_mutex();
 bool	carica_matrice();
 int		draw_rect();			//	funzione per il disegno del rettangolo del grafico
 void	read_command(char key);	//	interprete dei comandi inseriti dall'utente
-
+void	sampler();
 // ******************************** MAIN FUNCTION *********************************
 
 int main(void)
@@ -128,7 +129,7 @@ float 		casuale;
 		if(!stop_graphics){
 
 			pthread_mutex_lock(&mutex);
-
+			sampler();
 			if(count > 11){
 				//printf("[COUNT %d]\n", count);
 				for(i = 0; i < M; i++){
@@ -137,8 +138,11 @@ float 		casuale;
 					else
 						casuale = 0;
 					DATI[1][i] = vettore[i] + (casuale/100);
-					if(tachycardia && (i > 20 && i < 40)){
+					/*if(tachycardia && (i > 20 && i < 40)){
 						DATI[1][i] = DATI[1][i + 70];				
+					}*/
+					if(tachycardia){
+						sampler();
 					}
 				}
 				count = 0;
@@ -152,7 +156,11 @@ float 		casuale;
 					DATI[0][i] = DATI[0][i + 10];
 				}
 				else{
-					DATI[0][i] = DATI[1][i - 110 + (count * 10)];
+					if(tachycardia){
+						DATI[0][i] = samp[i - 110 + (count * 10)];
+					} else{
+						DATI[0][i] = DATI[1][i - 110 + (count * 10)];
+					}
 				}
 			}
 
@@ -373,5 +381,47 @@ void read_command(char key)
 	}
 	return;
 }
+
+void sampler()
+{
+int i = 0, j = 0;
+
+	for(i = 0; i < M/2; i++){
+		samp[i]		= DATI[1][2 * i];
+		samp[i + 59]	= DATI[1][2 * i];
+		//printf("aux(%d) = %f\n", j, aux[j]);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
