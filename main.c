@@ -7,10 +7,11 @@
 #include"task.h"
 
 
-#define N 2
-#define M 120
-#define n 10
-#define SHIFT_NUMBER 110
+#define N 				2
+#define M 				120
+#define n 				10
+#define SHIFT_NUMBER 	110
+#define	UPDATE_D1		11
 
 // ************* GLOBAL VARIABLES *****************
 
@@ -415,7 +416,7 @@ int update_D1(int count)
 float 		casuale; 
 
 	pthread_mutex_lock(&mutex);
-	if(count > 11){
+	if(count > UPDATE_D1){
 		//printf("[COUNT %d]\n", count);
 		for(int i = 0; i < M; i++){
 			if(fibrillation) 
