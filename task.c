@@ -5,9 +5,6 @@
 struct timespec     start, finish;      //Non utilizzate
 time_t              tstart,tend;
 
-
-
-
 void time_copy(struct timespec *td, struct timespec ts) {
     td->tv_sec = ts.tv_sec;
     td->tv_nsec = ts.tv_nsec;
@@ -29,37 +26,6 @@ int time_cmp(struct timespec t1, struct timespec t2) {
     if (t1.tv_nsec < t2.tv_nsec)    return -1;
     return 0;
 }
-
-
-
-void set_period(struct task_par *tp) {
-    struct timespec     t;
-
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    time_copy(&(tp->at), t);
-    time_copy(&(tp->dl), t);
-    time_add_ms(&(tp->at), tp->period);
-    time_add_ms(&(tp->dl), tp->deadline);
-}
-
-void  wait_for_period(struct task_par *tp){
-    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &(tp->at), NULL);
-
-    time_add_ms(&(tp->at), tp->period);
-    time_add_ms(&(tp->dl), tp->period);
-}
-
-int deadline_miss_stefano(struct task_par *tp) {
-    struct timespec     now;
-
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    if (time_cmp(now, tp->dl) > 0) {
-        tp->dmiss++;
-        return 1;
-    }
-    return 0;
-}
-
 
 void set_activation(int i)
 {

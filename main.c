@@ -10,7 +10,7 @@
 #define N 2
 #define M 120
 #define n 10
-
+#define SHIFT_NUMBER 110
 
 // ************* GLOBAL VARIABLES *****************
 
@@ -62,6 +62,8 @@ bool	carica_matrice();
 int		draw_rect();			//	funzione per il disegno del rettangolo del grafico
 void	read_command(char key);	//	interprete dei comandi inseriti dall'utente
 void	sampler();
+void	shift();
+int		update_D1(int count);
 // ******************************** MAIN FUNCTION *********************************
 
 int main(void)
@@ -72,8 +74,8 @@ int main(void)
 
 	// tasks creation
 
-	task_create(draw_function, 0, 100, 300, 20);
-	task_create(generatore, 1, 100, 300, 20);
+	task_create(draw_function, 0, 120, 300, 20);
+	task_create(generatore, 1, 120, 300, 20);
 	task_create(user_command, 2, 100, 80, 20);
 	//task_create(info, 3, 100, 80, 20);
 
@@ -116,10 +118,7 @@ char	key;	//Salviamo qui il carattere inserito dall'utente
 void * generatore()
 {
 
-int 		i = 0;
-int 		j = 0;
 int 		count = 0;
-float 		casuale; 
 	
 	set_activation(1);
 	
@@ -129,41 +128,21 @@ float 		casuale;
 
 			pthread_mutex_lock(&mutex);
 			sampler();
-			if(count > 11){
-				//printf("[COUNT %d]\n", count);
-				for(i = 0; i < M; i++){
-					if(fibrillation) 
-						casuale = rand()%10;
-					else
-						casuale = 0;
-					DATI[1][i] = vettore[i] + (casuale/100);
-					if(tachycardia){
-						sampler();
-					}
-				}
-				count = 0;
-			}
-			//shift
-			for(i = 0; i < M; i++){
-				if(i < 110){
-					DATI[0][i] = DATI[0][i + 10];
-				}
-				else{
-					if(tachycardia){ // FIXME
-						DATI[0][i] = samp[i - 110 + (count * 10)];
-					} else{
-						DATI[0][i] = DATI[1][i - 110 + (count * 10)];
-					}
-				}
-			}
+			pthread_mutex_unlock(&mutex);
+
+			// aggiornamento DATI[1]
+			count = update_D1(count);
+
+			//shift DATI[0]
+			shift(count);
 
 			count++;				
-			pthread_mutex_unlock(&mutex);
+			
 		}
 		if (deadline_miss(1) == 1) printf("DEADLINE MISS GENERATORE\n");     //soft real time
-		//printf("[GENERATOR] MUTEX UNLOCKED\n");
+
 		wait_for_activation(1);
-		}
+	}
 }
 
 //------------------------------------------------------------
@@ -191,7 +170,7 @@ int i;
 
 			for(i = 0; i < M; i++){
 				
-				line(screen, rect_coord_x1 + 4*i, 320 - (int)(140*aux_draw[i]), rect_coord_x1 + 4*i + 4, 320 - (int)(140*aux_draw[i+1]),  12);
+				line(screen, rect_coord_x1 + 4*i, 320 - (int)(140*aux_draw[i]), rect_coord_x1 + 4*i + 4, 320 - (int)(140*aux_draw[i+1]),  makecol(0, 0, 0));
 
 			}
 
@@ -349,12 +328,17 @@ int draw_rect()
 	rectfill(screen, rect_coord_x1, rect_coord_y1, rect_coord_x2, rect_coord_y2, 15);
 	rect(screen, rect_coord_x1, rect_coord_y1, rect_coord_x2, rect_coord_y2, 4);
 	
-	for(int i = 0; i < 47; i++){
-		line(screen, rect_coord_x1 + 10 + i*10, rect_coord_y1, rect_coord_x1 + 10 + i*10, rect_coord_y2, 14); // 11
-		if(i > 34)
+	for(int i = 0; i < 48; i++){
+		if(i % 4 == 0)
+			line(screen, rect_coord_x1 + i*10, rect_coord_y1, rect_coord_x1 + i*10, rect_coord_y2, 12); // 11
+		else
+			line(screen, rect_coord_x1 + i*10, rect_coord_y1, rect_coord_x1 + i*10, rect_coord_y2, makecol(255,150,150));
+		if(i > 35)
 			continue;
-		line(screen, rect_coord_x1, rect_coord_y1 - 10 - i*10, rect_coord_x2, rect_coord_y1 - 10 - i*10,  14);
-
+		if(i % 4 == 0)
+			line(screen, rect_coord_x1, rect_coord_y1 - i*10, rect_coord_x2, rect_coord_y1 - i*10, 12);
+		else
+			line(screen, rect_coord_x1, rect_coord_y1 - i*10, rect_coord_x2, rect_coord_y1 - i*10, makecol(255,150,150));			
 	}
 	return 0;
 }
@@ -406,10 +390,50 @@ int i = 0, j = 0;
 	}
 }
 
+void shift(int count)
+{
+	pthread_mutex_lock(&mutex);
+	for(int i = 0; i < M; i++){
+		if(i < SHIFT_NUMBER){
+			DATI[0][i] = DATI[0][i + 10];
+		}
+		else{
+			if(tachycardia){ // FIXME
+				DATI[0][i] = samp[i - 110 + (count * 10)];
+			} else{
+				DATI[0][i] = DATI[1][i - 110 + (count * 10)];
+			}
+		}
+	}
+	pthread_mutex_unlock(&mutex);
+}
 
 
+int update_D1(int count)
+{
 
+float 		casuale; 
 
+	pthread_mutex_lock(&mutex);
+	if(count > 11){
+		//printf("[COUNT %d]\n", count);
+		for(int i = 0; i < M; i++){
+			if(fibrillation) 
+				casuale = rand()%10;
+			else
+				casuale = 0;
+
+			DATI[1][i] = vettore[i] + (casuale/100);
+
+			if(tachycardia){
+				sampler();
+			}
+		}
+		count = 0;
+	}
+	pthread_mutex_unlock(&mutex);
+	return count;
+}
 
 
 

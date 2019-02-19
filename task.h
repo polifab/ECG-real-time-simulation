@@ -43,10 +43,3 @@ int task_create(
 	);
 
 
-void set_period(struct task_par *tp);
-
-void wait_for_period(struct task_par *tp);
-
-int deadline_miss_stefano(struct task_par *tp);
-
-
