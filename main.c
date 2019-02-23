@@ -8,10 +8,11 @@
 
 
 #define N 				2
-#define M 				120
+#define M 				360
+#define L				120
 #define n 				10
-#define SHIFT_NUMBER 	110
-#define	UPDATE_D1		11
+#define SHIFT_NUMBER 	350
+#define	UPDATE_D1		35
 
 // ************* GLOBAL VARIABLES *****************
 
@@ -78,7 +79,7 @@ int main(void)
 	task_create(draw_function, 0, 120, 300, 20);
 	task_create(generatore, 1, 120, 300, 20);
 	task_create(user_command, 2, 100, 80, 20);
-	//task_create(info, 3, 100, 80, 20);
+	//task_create(info, 3, 100, 300, 20);
 
 	// tasks joining
 
@@ -165,16 +166,26 @@ int i;
 			pthread_mutex_lock(&mutex); // sezione critica, lettura variabile condivisa DATI
 			for(i = 0; i < M; i++){
 				aux_draw[i] = DATI[0][i];
+				//printf("%.2f     %.2f\n", aux_draw[i], DATI[0][i]);
 			}
 			pthread_mutex_unlock(&mutex);
 			//printf("[DRAW] MUTEX UNLOCKED\n");
 
-			for(i = 0; i < M; i++){
+			for(i = 0; i < L; i++){
 				
 				line(screen, rect_coord_x1 + 4*i, 320 - (int)(140*aux_draw[i]), rect_coord_x1 + 4*i + 4, 320 - (int)(140*aux_draw[i+1]),  makecol(0, 0, 0));
 
 			}
+			for(i = L; i < L; i++){
+				
+				line(screen, rect_coord_x1 + 4*i, 320 - (int)(140*aux_draw[i+120]), rect_coord_x1 + 4*i + 4, 320 - (int)(140*aux_draw[i+121]),  makecol(0, 0, 0));
 
+			}
+			for(i = L; i < L; i++){
+				
+				line(screen, rect_coord_x1 + 4*i, 320 - (int)(140*aux_draw[i+240]), rect_coord_x1 + 4*i + 4, 320 - (int)(140*aux_draw[i+241]),  makecol(0, 0, 0));
+
+			}
 		} 
 	
 		if (deadline_miss(0) == 1) printf("DEADLINE MISS DRAW\n");     //soft real time
@@ -191,10 +202,9 @@ void *info()
 {
 	
 int n_picchi = 0;
-int distanza_p, i, counter = 0;
-float distanza_t; //distanza di punti e distanza temporale
+int distanza_p, i; 
+float distanza_t; //distanza temporale
 char text[24];
-bool picco_rilevato = false; 
 	
 	set_activation(3);
 
@@ -202,19 +212,19 @@ bool picco_rilevato = false;
 
 		if(!stop_graphics){
 			wait_for_activation(3);
-	
-		for(i = 0; i < 10; i++){
-			if(DATI[0][i] > 0.94){
-				picchi[1] = i + counter;
-				picco_rilevato = true;
-				break;
+		
+		for(i = 0; i < M; i++){
+			if(DATI[0][i] > 0.96){
+				picchi[n_picchi] = i;
+				printf("%d\n", i);
+				n_picchi++;
 			}
 		}
 			
-			if(picco_rilevato){
+			
 			//calcolo la distanza di campioni tra gli ultimi due picchi, ogni campione corrisponde a 0,0141 secondi
-			distanza_p = picchi[1] - picchi[0];
-			distanza_t = distanza_p * 0.0141;
+			distanza_p = picchi[n_picchi - 1] - picchi[n_picchi - 2];
+			distanza_t = distanza_p * 0.008;
 			bpm = floor(60/distanza_t);
 			
 			printf("BPM: %d\n", bpm);
@@ -224,16 +234,13 @@ bool picco_rilevato = false;
 			sprintf(text, "%d", bpm);
 			textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2, 11, -1);
 		
-			picchi[0] = picchi[1] - counter;
+			for(i = 0; i < n_picchi + 1; i++) 
+								picchi[i] = 0;
 			
 			
-			counter = 0;
 			pthread_mutex_unlock(&mutex);
 			wait_for_activation(3);
-			}
-			else counter = counter + 10;
 			
-			picco_rilevato = false;
 		}	
 	}
 }
@@ -306,14 +313,29 @@ bool carica_matrice()
 	}
 	else {
 		int i, j = 0;
-		for(i = 0; i < M; i++){
+		for(i = 0; i < L; i++){
 			fscanf(fp, "%e,", &DATI[0][i]);
-			if(i < 10)
+			
+			if(i < 10){
 				vettore[i] = 0.1;
-			else
-				vettore[i] = DATI[0][i];				
-			DATI[1][i] = vettore[i];		
+				vettore[i+120] = 0.1;
+				vettore[i+240] = 0.1;
+			}
+			else{
+				vettore[i] = DATI[0][i];
+				vettore[i+120] = DATI[0][i];
+				vettore[i+240] = DATI[0][i];
+			}
+			DATI[1][i] = vettore[i];
+			DATI[1][i+120] = vettore[i];
+			DATI[1][i+240] = vettore[i];
+			DATI[0][i+120] = DATI[1][i];
+			DATI[0][i+240] = DATI[1][i];
 		}
+		
+		
+		
+		//for(i=L;i<M;i++) printf("%.2f ", DATI[0][i]);
 	}	
 
 	fclose(fp);
@@ -387,6 +409,8 @@ int i = 0, j = 0;
 	for(i = 0; i < M/2; i++){
 		samp[i]		= DATI[1][2 * i];
 		samp[i + 59]	= DATI[1][2 * i];
+		samp[i + 119]	= DATI[1][2 * i];
+		samp[i + 179]	= DATI[1][2 * i];
 		//printf("aux(%d) = %f\n", j, aux[j]);
 	}
 }
@@ -396,13 +420,14 @@ void shift(int count)
 	pthread_mutex_lock(&mutex);
 	for(int i = 0; i < M; i++){
 		if(i < SHIFT_NUMBER){
+			//printf("%.2f\n", DATI[0][i+10]);
 			DATI[0][i] = DATI[0][i + 10];
 		}
 		else{
 			if(tachycardia){ // FIXME
-				DATI[0][i] = samp[i - 110 + (count * 10)];
+				DATI[0][i] = samp[i - 350 + (count * 10)];
 			} else{
-				DATI[0][i] = DATI[1][i - 110 + (count * 10)];
+				DATI[0][i] = DATI[1][i - 350 + (count * 10)];
 			}
 		}
 	}
@@ -418,18 +443,21 @@ float 		casuale;
 	pthread_mutex_lock(&mutex);
 	if(count > UPDATE_D1){
 		//printf("[COUNT %d]\n", count);
-		for(int i = 0; i < M; i++){
+		for(int i = 0; i < L; i++){
 			if(fibrillation) 
 				casuale = rand()%10;
 			else
 				casuale = 0;
 
 			DATI[1][i] = vettore[i] + (casuale/100);
+			DATI[1][i+120] = vettore[i] + (casuale/100);
+			DATI[1][i+240] = vettore[i] + (casuale/100);
 
 			if(tachycardia){
 				sampler();
 			}
 		}
+		
 		count = 0;
 	}
 	pthread_mutex_unlock(&mutex);
