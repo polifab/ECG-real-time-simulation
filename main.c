@@ -458,7 +458,7 @@ char 	text[24];
 		for(i = 0; i < M; i++){
 				if(DATI[0][i] > 0.96){
 					picchi[n_picchi] = i;
-					printf("%d\n", i);
+					//printf("%d\n", i);
 					n_picchi++;
 				}
 			}
@@ -468,7 +468,7 @@ char 	text[24];
 				distanza_t = distanza_p * 0.008;
 				bpm = floor(60/distanza_t);
 
-				printf("BPM: %d\n", bpm);
+				//printf("BPM: %d\n", bpm);
 
 				rectfill(screen, rect_coord_x1-90, rect_coord_y2-4, rect_coord_x1, rect_coord_y2+8, 0);
 
