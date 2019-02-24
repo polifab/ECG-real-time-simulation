@@ -64,6 +64,7 @@ bool	carica_matrice();
 int		draw_rect();			//	funzione per il disegno del rettangolo del grafico
 void	read_command(char key);	//	interprete dei comandi inseriti dall'utente
 void	sampler();
+int		arrhythmia_sim();
 void	shift();
 int		update_D1(int count);
 int 	bpm_calculation(int counter); //funzione per il calcolo dei bpm
@@ -78,10 +79,10 @@ int main(void)
 
 	// tasks creation
 
-	task_create(draw_function, 0, 120, 300, 20);
-	task_create(generatore, 1, 120, 300, 20);
+	task_create(draw_function, 0, 125, 500, 20);
+	task_create(generatore, 1, 125, 500, 20);
 	task_create(user_command, 2, 100, 80, 20);
-	task_create(info, 3, 100, 300, 20);
+	task_create(info, 3, 200, 300, 20);
 
 	// tasks joining
 
@@ -97,7 +98,7 @@ int main(void)
 	return 0;
 }
 
-//***************************** TASK IMPLEMENTATION **********************************
+//***************************** TASKS IMPLEMENTATION **********************************
 
 void * user_command()
 {
@@ -129,8 +130,9 @@ int 		count = 0;
 	while(quit == false) {
 
 		if(!stop_graphics){
-
+			
 			pthread_mutex_lock(&mutex);
+			arrhythmia_sim();
 			sampler();
 			pthread_mutex_unlock(&mutex);
 
@@ -220,7 +222,7 @@ int counter = 0;
 			counter++;
 			bpm_calculation(counter);
 			
-			pthread_mutex_unlock(&mutex);
+			//pthread_mutex_unlock(&mutex);
 			wait_for_activation(3);
 			
 		}	
@@ -387,6 +389,10 @@ void read_command(char key)
 
 void sampler()
 {
+
+	if(tachycardia == false)
+		return;
+
 int i = 0, j = 0;
 
 	for(i = 0; i < M/2; i++){
@@ -452,7 +458,8 @@ float 		casuale;
 
 //--------------------------------------------
 
-int bpm_calculation(int counter){
+int bpm_calculation(int counter)
+{
 	
 int 	n_picchi 	= 	0;
 int 	distanza_p, i; 
@@ -460,6 +467,7 @@ float 	distanza_t; //distanza temporale
 char 	text[24];
 	
 	if(counter > 1){
+		pthread_mutex_lock(&mutex);
 		for(i = 0; i < M; i++){
 				if(DATI[0][i] > 0.96){
 					picchi[n_picchi] = i;
@@ -467,26 +475,51 @@ char 	text[24];
 					n_picchi++;
 				}
 			}
+		pthread_mutex_unlock(&mutex);
+		//calcolo la distanza di campioni tra gli ultimi due picchi, ogni campione corrisponde a 0,0141 secondi
+		distanza_p = picchi[n_picchi - 1] - picchi[n_picchi - 2];
+		distanza_t = distanza_p * 0.008;
+		bpm = floor(60/distanza_t);
 
-				//calcolo la distanza di campioni tra gli ultimi due picchi, ogni campione corrisponde a 0,0141 secondi
-				distanza_p = picchi[n_picchi - 1] - picchi[n_picchi - 2];
-				distanza_t = distanza_p * 0.008;
-				bpm = floor(60/distanza_t);
+		//printf("BPM: %d\n", bpm);
 
-				//printf("BPM: %d\n", bpm);
+		rectfill(screen, rect_coord_x1-90, rect_coord_y2-4, rect_coord_x1, rect_coord_y2+8, 0);
 
-				rectfill(screen, rect_coord_x1-90, rect_coord_y2-4, rect_coord_x1, rect_coord_y2+8, 0);
+		sprintf(text, "%d", bpm);
+		textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2, 11, -1);
 
-				sprintf(text, "%d", bpm);
-				textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2, 11, -1);
-
-				for(i = 0; i < n_picchi + 1; i++) 
-									picchi[i] = 0;
+		for(i = 0; i < n_picchi + 1; i++) 
+			picchi[i] = 0;
 		counter = 0;
 	}
 	
 	return counter;
 }
+
+//-----------------------------------------
+
+int arrhythmia_sim()
+{
+	if(arrhythmia == false)
+		return 1;
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
