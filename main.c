@@ -173,7 +173,7 @@ int i;
 			pthread_mutex_unlock(&mutex);
 			//printf("[DRAW] MUTEX UNLOCKED\n");
 
-			for(i = 0; i < L; i++){
+			/*for(i = 0; i < L; i++){
 				
 				line(screen, rect_coord_x1 + 4*i, 320 - (int)(140*aux_draw[i]), rect_coord_x1 + 4*i + 4, 320 - (int)(140*aux_draw[i+1]),  makecol(0, 0, 0));
 
@@ -187,7 +187,12 @@ int i;
 				
 				line(screen, rect_coord_x1 + 4*i, 320 - (int)(140*aux_draw[i+240]), rect_coord_x1 + 4*i + 4, 320 - (int)(140*aux_draw[i+241]),  makecol(0, 0, 0));
 
+			}*/
+
+			for(i = 0; i < M; i++){
+				line(screen, rect_coord_x1 + 1.5*i, 320 - (int)(140*aux_draw[i]), rect_coord_x1 + 1.5*i + 1.5, 320 - (int)(140*aux_draw[i+1]),  makecol(0, 0, 0));
 			}
+
 		} 
 	
 		if (deadline_miss(0) == 1) printf("DEADLINE MISS DRAW\n");     //soft real time
