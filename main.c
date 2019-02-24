@@ -1,18 +1,18 @@
-#include<stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <allegro.h>
-#include<math.h>
-#include<stdbool.h>
-#include"task.h"
+#include <math.h>
+#include <stdbool.h>
+#include "task.h"
 
 
-#define N 				2
-#define M 				360
-#define L				120
-#define n 				10
-#define SHIFT_NUMBER 	350
-#define	UPDATE_D1		35
+#define 	N 				2
+#define 	M 				360
+#define		L				120
+#define		n 				10
+#define 	SHIFT_NUMBER 	350
+#define		UPDATE_D1		35
 
 // ************* GLOBAL VARIABLES *****************
 
@@ -35,7 +35,7 @@ float	samp[M];
 
 int 	picchi[n];				
 int 	bpm; 
-int 	read_count = 0;
+int 	read_count 	=	 0;
 
 //	mutex
 
@@ -43,11 +43,11 @@ pthread_mutex_t 	mutex = PTHREAD_MUTEX_INITIALIZER;
 
 //	gruppo variabili per la grafica
 
-int	x = 1024, y = 600, col = 4;
-int	rect_coord_x1 = 160; // x / 4
-int	rect_coord_x2 = 640; // 3/4 * x 
-int	rect_coord_y1 = 480;
-int	rect_coord_y2 = 120;
+int		x = 1024, y = 600, col = 4;
+int		rect_coord_x1 = 160; // x / 4
+int		rect_coord_x2 = 640; // 3/4 * x 
+int		rect_coord_y1 = 480;
+int		rect_coord_y2 = 120;
 
 // ************* TASK PROTOTYPES ****************************
 
@@ -66,6 +66,8 @@ void	read_command(char key);	//	interprete dei comandi inseriti dall'utente
 void	sampler();
 void	shift();
 int		update_D1(int count);
+int 	bpm_calculation(int counter); //funzione per il calcolo dei bpm
+
 // ******************************** MAIN FUNCTION *********************************
 
 int main(void)
@@ -79,7 +81,7 @@ int main(void)
 	task_create(draw_function, 0, 120, 300, 20);
 	task_create(generatore, 1, 120, 300, 20);
 	task_create(user_command, 2, 100, 80, 20);
-	//task_create(info, 3, 100, 300, 20);
+	task_create(info, 3, 100, 300, 20);
 
 	// tasks joining
 
@@ -89,8 +91,8 @@ int main(void)
 	printf("2\n");
 	pthread_join(tid[2],NULL);
 	printf("3\n");
-	//pthread_join(tid[3],NULL);
-	//printf("4\n");
+	pthread_join(tid[3],NULL);
+	printf("4\n");
 
 	return 0;
 }
@@ -201,10 +203,7 @@ int i;
 void *info()
 {
 	
-int n_picchi = 0;
-int distanza_p, i; 
-float distanza_t; //distanza temporale
-char text[24];
+int counter = 0;
 	
 	set_activation(3);
 
@@ -212,31 +211,9 @@ char text[24];
 
 		if(!stop_graphics){
 			wait_for_activation(3);
-		
-		for(i = 0; i < M; i++){
-			if(DATI[0][i] > 0.96){
-				picchi[n_picchi] = i;
-				printf("%d\n", i);
-				n_picchi++;
-			}
-		}
 			
-			
-			//calcolo la distanza di campioni tra gli ultimi due picchi, ogni campione corrisponde a 0,0141 secondi
-			distanza_p = picchi[n_picchi - 1] - picchi[n_picchi - 2];
-			distanza_t = distanza_p * 0.008;
-			bpm = floor(60/distanza_t);
-			
-			printf("BPM: %d\n", bpm);
-				
-			rectfill(screen, rect_coord_x1-90, rect_coord_y2-4, rect_coord_x1, rect_coord_y2+8, 0);
-				
-			sprintf(text, "%d", bpm);
-			textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2, 11, -1);
-		
-			for(i = 0; i < n_picchi + 1; i++) 
-								picchi[i] = 0;
-			
+			counter++;
+			bpm_calculation(counter);
 			
 			pthread_mutex_unlock(&mutex);
 			wait_for_activation(3);
@@ -244,7 +221,6 @@ char text[24];
 		}	
 	}
 }
-
 
 // ********************** FUNCTIONS IMPLEMENTATION *****************************
 
@@ -402,6 +378,8 @@ void read_command(char key)
 	return;
 }
 
+//--------------------------------------------
+
 void sampler()
 {
 int i = 0, j = 0;
@@ -414,6 +392,8 @@ int i = 0, j = 0;
 		//printf("aux(%d) = %f\n", j, aux[j]);
 	}
 }
+
+//----------------------------------------------
 
 void shift(int count)
 {
@@ -434,6 +414,7 @@ void shift(int count)
 	pthread_mutex_unlock(&mutex);
 }
 
+//-------------------------------------------------------
 
 int update_D1(int count)
 {
@@ -464,7 +445,43 @@ float 		casuale;
 	return count;
 }
 
+//--------------------------------------------
 
+int bpm_calculation(int counter){
+	
+int 	n_picchi 	= 	0;
+int 	distanza_p, i; 
+float 	distanza_t; //distanza temporale
+char 	text[24];
+	
+	if(counter > 1){
+		for(i = 0; i < M; i++){
+				if(DATI[0][i] > 0.96){
+					picchi[n_picchi] = i;
+					printf("%d\n", i);
+					n_picchi++;
+				}
+			}
+
+				//calcolo la distanza di campioni tra gli ultimi due picchi, ogni campione corrisponde a 0,0141 secondi
+				distanza_p = picchi[n_picchi - 1] - picchi[n_picchi - 2];
+				distanza_t = distanza_p * 0.008;
+				bpm = floor(60/distanza_t);
+
+				printf("BPM: %d\n", bpm);
+
+				rectfill(screen, rect_coord_x1-90, rect_coord_y2-4, rect_coord_x1, rect_coord_y2+8, 0);
+
+				sprintf(text, "%d", bpm);
+				textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2, 11, -1);
+
+				for(i = 0; i < n_picchi + 1; i++) 
+									picchi[i] = 0;
+		counter = 0;
+	}
+	
+	return counter;
+}
 
 
 
