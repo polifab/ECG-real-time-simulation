@@ -21,6 +21,10 @@ bool	stop_graphics	=	true;	//	variabile per lo stop dei thread produttori e cons
 bool	fibrillation	=	false;
 bool	tachycardia		=	false;
 bool	arrhythmia		=	false;
+bool	anomaly_fibril	=	false; 	//  variabili per la rilevazione delle anomalie
+bool	anomaly_tachy	=	false;
+bool	anomaly_brady	=	false;
+bool	anomaly_arrhyt	=	false;
 
 //	gruppo di variabile necessari per la lettura dei dati dai file
 
@@ -56,6 +60,7 @@ void	*	draw_function();	//	task dedito ad aggiornare la grafica (consumatore)
 void	*	user_command();		//	task dedito alla lettura dei comandi dell'utente
 void 	* 	generatore();		//	task dedito alla generazione dei valori dell'ecg (produttore)
 void	* 	info();				//	task dedito ai calcoli relativi l'analisi dell'ecg
+void	* 	anomaly_detector(); // 	task dedito alla rilevazione di anomalie del ritmo sinusale
 
 // ************* FUNCTION PROTOTYPES **********************
 
@@ -69,6 +74,7 @@ int		arrhythmia_sim();
 void	shift();
 int		update_D1(int count);
 int 	bpm_calculation(int counter); //funzione per il calcolo dei bpm
+void 	warnings();
 
 // ******************************** MAIN FUNCTION *********************************
 
@@ -84,6 +90,7 @@ int main(void)
 	task_create(generatore, 1, 125, 500, 20);
 	task_create(user_command, 2, 100, 80, 20);
 	task_create(info, 3, 200, 300, 20);
+	task_create(anomaly_detector, 4, 200, 300, 20);
 
 	// tasks joining
 
@@ -95,7 +102,10 @@ int main(void)
 	printf("3\n");
 	pthread_join(tid[3],NULL);
 	printf("4\n");
+	pthread_join(tid[4],NULL);
+	printf("5\n");
 
+	
 	return 0;
 }
 
@@ -228,6 +238,36 @@ int counter = 0;
 			
 		}	
 	}
+}
+
+//-------------------------------------------------------
+
+void * anomaly_detector()
+{
+	set_activation(4);
+
+	while(quit == false) {
+
+		if(!stop_graphics){
+			
+			if(bpm >= 100){
+				anomaly_tachy = true;
+			} else{
+				anomaly_tachy = false;
+			} 
+			
+			if(bpm <= 50){
+				anomaly_brady = true;
+			} else{
+				anomaly_brady = false;
+			}
+			
+			
+			warnings();
+			wait_for_activation(3);
+		}	
+	}
+	
 }
 
 // ********************** FUNCTIONS IMPLEMENTATION *****************************
@@ -470,7 +510,7 @@ int bpm_calculation(int counter)
 int 	n_picchi 	= 	0;
 int 	distanza_p, i; 
 float 	distanza_t; //distanza temporale
-char 	text[24];
+char 	text[4];
 	
 	if(counter > 1){
 		pthread_mutex_lock(&mutex);
@@ -489,11 +529,12 @@ char 	text[24];
 
 		//printf("BPM: %d\n", bpm);
 
-		rectfill(screen, rect_coord_x1-90, rect_coord_y2-4, rect_coord_x1, rect_coord_y2+8, 0);
+		rectfill(screen, rect_coord_x1-90, rect_coord_y2-4, rect_coord_x1, rect_coord_y2+8, 0); //cancello il precedente valore BPM	
 
 		sprintf(text, "%d", bpm);
 		textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2, 11, -1);
-
+		
+		
 		for(i = 0; i < n_picchi + 1; i++) 
 			picchi[i] = 0;
 		counter = 0;
@@ -562,7 +603,26 @@ float previous = 0;
 
 }
 
+//-----------------------------------------
 
+void warnings()
+{
+	
+char 	text[48];
+	
+	rectfill(screen, rect_coord_x2 + 65, rect_coord_y2 + 3, rect_coord_x2 + 295, rect_coord_y2 + 24, 15);
+	
+	if(anomaly_tachy){
+		sprintf(text, "High heartbeat, tachycardia");
+		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12, 1, -1);
+	}
+	else if(anomaly_brady){
+		sprintf(text, "Slow heartbeat, bradycardia");
+		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12, 1, -1);
+	}
+	
+	
+}
 
 
 
