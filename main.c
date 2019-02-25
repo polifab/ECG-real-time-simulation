@@ -30,6 +30,7 @@ float 	DATI[N][M];
 float 	vettore[M];
 float	aux_draw[M];
 float	samp[M];
+float	buff_arr[L];
 
 //	gruppo per l'esecuzione dei calcoli		
 
@@ -132,7 +133,7 @@ int 		count = 0;
 		if(!stop_graphics){
 			
 			pthread_mutex_lock(&mutex);
-			arrhythmia_sim();
+
 			sampler();
 			pthread_mutex_unlock(&mutex);
 
@@ -316,6 +317,9 @@ bool carica_matrice()
 			DATI[0][i+240] = DATI[1][i];
 		}
 		
+		for(i = 0; i < L; i++){
+			buff_arr[i] = vettore[i];
+		}
 		
 		
 		//for(i=L;i<M;i++) printf("%.2f ", DATI[0][i]);
@@ -445,11 +449,13 @@ float 		casuale;
 			DATI[1][i+120] = vettore[i] + (casuale/100);
 			DATI[1][i+240] = vettore[i] + (casuale/100);
 
-			if(tachycardia){
-				sampler();
-			}
 		}
-		
+		if(arrhythmia){
+			arrhythmia_sim();
+		}
+		if(tachycardia){
+			sampler();
+		}
 		count = 0;
 	}
 	pthread_mutex_unlock(&mutex);
@@ -503,10 +509,58 @@ int arrhythmia_sim()
 	if(arrhythmia == false)
 		return 1;
 
+int random_sampler;
+int	i	=	0;
+int	j	=	0;
+int counter = 1;
+int pivot_points = 0;
+float previous = 0;
+
+	if(tachycardia){
+		random_sampler = rand()%3;
+	} else {
+		random_sampler = rand()%5;
+	}
+
+	if(random_sampler == 0)
+		random_sampler = 1;
+
+	printf("%d\n", random_sampler);
+
+	pivot_points = L / random_sampler;
+
+	//interpolation_lenght = 2*L - pivot_points;
+
+	while(i < L){
+		DATI[1][j]	=	buff_arr[i];
+		i = i + random_sampler; 
+		j++;
+	}
+
+	i = 0;
+
+	while(i < L){
+		DATI[1][j]	=	(buff_arr[i] + previous)/counter;						
+		if(counter == random_sampler + 1){
+			previous = 0;
+			counter = 1;
+			i = i + 1;
+		} else {
+			previous = previous + buff_arr[i];
+			counter++; 
+		}
+		j++;
+	}
+
+	i = 0;
+
+	while(i < L){
+		DATI[1][j]	=	buff_arr[i];
+		j++;
+		i++;
+	}
+
 }
-
-
-
 
 
 
