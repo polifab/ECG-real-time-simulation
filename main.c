@@ -74,6 +74,7 @@ int		arrhythmia_sim();
 void	shift();
 int		update_D1(int count);
 int 	bpm_calculation(int counter); //funzione per il calcolo dei bpm
+void 	simulation_notice();		  
 void 	warnings();
 
 // ******************************** MAIN FUNCTION *********************************
@@ -232,6 +233,7 @@ int counter = 0;
 			
 			counter++;
 			bpm_calculation(counter);
+			simulation_notice();
 			
 			//pthread_mutex_unlock(&mutex);
 			wait_for_activation(3);
@@ -508,7 +510,8 @@ int bpm_calculation(int counter)
 {
 	
 int 	n_picchi 	= 	0;
-int 	distanza_p, i; 
+int 	distanza_p, i;
+int 	bpm_col;
 float 	distanza_t; //distanza temporale
 char 	text[4];
 	
@@ -531,8 +534,19 @@ char 	text[4];
 
 		rectfill(screen, rect_coord_x1-90, rect_coord_y2-4, rect_coord_x1, rect_coord_y2+8, 0); //cancello il precedente valore BPM	
 
+		if(bpm >= 100){
+			bpm_col = 4;
+		}
+		else if(bpm < 50){
+			bpm_col = 15;
+		}
+		else{
+			bpm_col = 11; 
+		}
+		
+		
 		sprintf(text, "%d", bpm);
-		textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2, 11, -1);
+		textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2, bpm_col, -1);
 		
 		
 		for(i = 0; i < n_picchi + 1; i++) 
@@ -608,23 +622,55 @@ float previous = 0;
 void warnings()
 {
 	
+int 	i = 0;
 char 	text[48];
 	
-	rectfill(screen, rect_coord_x2 + 65, rect_coord_y2 + 3, rect_coord_x2 + 295, rect_coord_y2 + 24, 15);
+	rectfill(screen, rect_coord_x2 + 65, rect_coord_y2 + 3, rect_coord_x2 + 295, rect_coord_y2 + 355, 15);
 	
 	if(anomaly_tachy){
 		sprintf(text, "High heartbeat, tachycardia");
-		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12, 1, -1);
+		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * 22), 1, -1);
+		i++;
 	}
 	else if(anomaly_brady){
 		sprintf(text, "Slow heartbeat, bradycardia");
-		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12, 1, -1);
+		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * 22), 1, -1);
+		i++;	
 	}
 	
 	
 }
 
+//--------------------------------------
 
+void simulation_notice()
+{
+
+int 	i = 0;
+char 	text[48];
+	
+	
+	rectfill(screen, rect_coord_x1, rect_coord_y2 - 100, rect_coord_x1 + 500, rect_coord_y2 - 30, 0);
+	
+	if(tachycardia){
+		sprintf(text, "Tachycardia simulation in progress");
+		textout_centre_ex(screen, font, text, rect_coord_x1 + 320, rect_coord_y2 - 100 + (i * 22), 2, -1);
+		i++;
+	}	
+	
+	if(arrhythmia){
+		sprintf(text, "Arrhythmia simulation in progress");
+		textout_centre_ex(screen, font, text, rect_coord_x1 + 320, rect_coord_y2 - 100 + (i * 22), 2, -1);
+		i++;
+	}
+	
+	if(fibrillation){
+		sprintf(text, "Fibrillation simulation in progress");
+		textout_centre_ex(screen, font, text, rect_coord_x1 + 320, rect_coord_y2 - 100 + (i * 22), 2, -1);
+		i++;
+	}
+	
+}
 
 
 
