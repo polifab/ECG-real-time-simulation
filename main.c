@@ -14,6 +14,15 @@
 #define 	SHIFT_NUMBER 	350
 #define		UPDATE_D1		35
 
+// TASKS IDENTIFIER MACRO
+
+#define		DRAW_TASK		0
+#define		GENR_TASK		1
+#define		USER_TASK		2
+#define		INFO_TASK		3
+#define		ANOM_TASK		4
+
+
 // ************* GLOBAL VARIABLES *****************
 
 bool	quit			=	false;	//	variabile di terminazione 
@@ -35,6 +44,7 @@ float 	vettore[M];
 float	aux_draw[M];
 float	samp[M];
 float	buff_arr[L];
+float	arr[M];
 
 //	gruppo per l'esecuzione dei calcoli		
 
@@ -87,24 +97,24 @@ int main(void)
 
 	// tasks creation
 
-	task_create(draw_function, 0, 125, 500, 20);
-	task_create(generatore, 1, 125, 500, 20);
-	task_create(user_command, 2, 100, 80, 20);
-	task_create(info, 3, 200, 300, 20);
-	task_create(anomaly_detector, 4, 200, 300, 20);
+	task_create(draw_function, DRAW_TASK, 125, 500, 20);
+	task_create(generatore, GENR_TASK, 125, 500, 20);
+	task_create(user_command, USER_TASK, 100, 80, 20);
+	task_create(info, INFO_TASK, 200, 300, 20);
+	task_create(anomaly_detector, ANOM_TASK, 200, 300, 20);
 
 	// tasks joining
 
-	pthread_join(tid[0],NULL);
-	printf("1\n");
-	pthread_join(tid[1],NULL);
-	printf("2\n");
-	pthread_join(tid[2],NULL);
-	printf("3\n");
-	pthread_join(tid[3],NULL);
-	printf("4\n");
-	pthread_join(tid[4],NULL);
-	printf("5\n");
+	pthread_join(tid[DRAW_TASK],NULL);
+	printf("DRAW TASK\n");
+	pthread_join(tid[GENR_TASK],NULL);
+	printf("GENERATOR TASK\n");
+	pthread_join(tid[USER_TASK],NULL);
+	printf("USER TASK\n");
+	pthread_join(tid[INFO_TASK],NULL);
+	printf("INFO TASK\n");
+	pthread_join(tid[ANOM_TASK],NULL);
+	printf("ANOMALY DETECTOR TASK\n");
 
 	
 	return 0;
@@ -117,7 +127,7 @@ void * user_command()
 
 char	key;	//Salviamo qui il carattere inserito dall'utente
 
-    set_activation(2);
+    set_activation(USER_TASK);
 
     while (quit == false) {
         key = readkey() & 0xFF;
@@ -125,8 +135,8 @@ char	key;	//Salviamo qui il carattere inserito dall'utente
 
 		printf("hai digitato %c\n", key);  
 		
-        if (deadline_miss(2) == 1) printf("2!\n");     //soft real time
-        wait_for_activation(2);
+        if (deadline_miss(USER_TASK) == 1) printf("2!\n");     //soft real time
+        wait_for_activation(USER_TASK);
     }
 }
 
@@ -137,7 +147,7 @@ void * generatore()
 
 int 		count = 0;
 	
-	set_activation(1);
+	set_activation(GENR_TASK);
 	
 	while(quit == false) {
 
@@ -157,9 +167,9 @@ int 		count = 0;
 			count++;				
 			
 		}
-		if (deadline_miss(1) == 1) printf("DEADLINE MISS GENERATORE\n");     //soft real time
+		if (deadline_miss(GENR_TASK) == 1) printf("DEADLINE MISS GENERATORE\n");     //soft real time
 
-		wait_for_activation(1);
+		wait_for_activation(GENR_TASK);
 	}
 }
 
@@ -170,7 +180,7 @@ void * draw_function()
 
 int i;
 
-	set_activation(0);
+	set_activation(DRAW_TASK);
 
 	while(quit == false) {
 
@@ -204,14 +214,14 @@ int i;
 			}*/
 
 			for(i = 0; i < M; i++){
-				line(screen, rect_coord_x1 + 1.5*i, 320 - (int)(140*aux_draw[i]), rect_coord_x1 + 1.5*i + 1.5, 320 - (int)(140*aux_draw[i+1]),  makecol(0, 0, 0));
+				line(screen, rect_coord_x1 + 1.5*i, 340 - (int)(140*aux_draw[i]), rect_coord_x1 + 1.5*i + 1.5, 340 - (int)(140*aux_draw[i+1]),  makecol(0, 0, 0));
 			}
 
 		} 
 	
-		if (deadline_miss(0) == 1) printf("DEADLINE MISS DRAW\n");     //soft real time
+		if (deadline_miss(DRAW_TASK) == 1) printf("DEADLINE MISS DRAW\n");     //soft real time
 
-		wait_for_activation(0);
+		wait_for_activation(DRAW_TASK);
 	}
 	
 	return NULL;
@@ -224,19 +234,19 @@ void *info()
 	
 int counter = 0;
 	
-	set_activation(3);
+	set_activation(INFO_TASK);
 
 	while(quit == false) {
 
 		if(!stop_graphics){
-			wait_for_activation(3);
+			//wait_for_activation(INFO_TASK);
 			
 			counter++;
 			bpm_calculation(counter);
 			simulation_notice();
 			
 			//pthread_mutex_unlock(&mutex);
-			wait_for_activation(3);
+			wait_for_activation(INFO_TASK);
 			
 		}	
 	}
@@ -246,7 +256,7 @@ int counter = 0;
 
 void * anomaly_detector()
 {
-	set_activation(4);
+	set_activation(ANOM_TASK);
 
 	while(quit == false) {
 
@@ -266,7 +276,7 @@ void * anomaly_detector()
 			
 			
 			warnings();
-			wait_for_activation(3);
+			wait_for_activation(ANOM_TASK);
 		}	
 	}
 	
@@ -308,10 +318,10 @@ char value_x[180];
 	draw_rect();
 
 	sprintf(text, "Press 'q' to exit");
-	textout_centre_ex(screen, font, text, 320, 100, 15, -1);
+	textout_centre_ex(screen, font, text, 380, 100, 15, -1);
 	sprintf(text, "BPM:");
-	textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2-15, 10, -1);
-	sprintf(value_x, "Press 's' to stop the graphics and press 'r' to resume");
+	textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2-20, 10, -1);
+	sprintf(value_x, "Press 's' to start/stop the graphics");
 	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 15, 15, -1);
 	sprintf(value_x, "Press 'f' to start/stop fibrillation");
 	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 40, 15, -1);
@@ -341,7 +351,7 @@ bool carica_matrice()
 		int i, j = 0;
 		for(i = 0; i < L; i++){
 			fscanf(fp, "%e,", &DATI[0][i]);
-			
+			//printf("%e\n", DATI[0][i]);
 			if(i < 10){
 				vettore[i] = 0.1;
 				vettore[i+120] = 0.1;
@@ -406,11 +416,7 @@ void read_command(char key)
 			break;
 
 		case 's':
-			stop_graphics	=	true;
-			break;
-		
-		case 'r':
-			stop_graphics	=	false;
+			stop_graphics	=	!stop_graphics;
 			break;
 
 		case 'f':
@@ -463,7 +469,7 @@ void shift(int count)
 		else{
 			if(tachycardia){ // FIXME
 				DATI[0][i] = samp[i - 350 + (count * 10)];
-			} else{
+			} else {
 				DATI[0][i] = DATI[1][i - 350 + (count * 10)];
 			}
 		}
@@ -477,23 +483,56 @@ int update_D1(int count)
 {
 
 float 		casuale; 
+int			index_arr;
+float		value;
 
 	pthread_mutex_lock(&mutex);
 	if(count > UPDATE_D1){
 		//printf("[COUNT %d]\n", count);
 		for(int i = 0; i < L; i++){
 			if(fibrillation) 
-				casuale = rand()%10;
+				casuale = rand()%10; 
 			else
 				casuale = 0;
 
-			DATI[1][i] = vettore[i] + (casuale/100);
-			DATI[1][i+120] = vettore[i] + (casuale/100);
-			DATI[1][i+240] = vettore[i] + (casuale/100);
+			DATI[1][i]			= vettore[i] + (casuale/(rand()%100 + 10));
+			DATI[1][i + 120]	= vettore[i] + (casuale/(rand()%150 + 10));
+			DATI[1][i + 240]	= vettore[i] + (casuale/(rand()%50 + 10));
 
 		}
 		if(arrhythmia){
-			arrhythmia_sim();
+
+			for(int i = 25; i < 46; i++){
+				value = 0.1 + (rand()%10)/100.0;
+				DATI[1][i] = value; 
+				DATI[1][i + 120] = value; 
+				DATI[1][i + 240] = value; 			
+			}
+			index_arr	=	(rand()*11)%70;
+			value		=	0.9;
+			DATI[1][index_arr+ 30]				=	DATI[1][index_arr + 49] + 0.15;
+			DATI[1][index_arr + 31]				=	DATI[1][index_arr + 50] + 0.2;
+			DATI[1][index_arr + 32]				=	DATI[1][index_arr + 51] + 0.15;
+
+			DATI[1][index_arr + 15]	=	DATI[1][index_arr + 60] + value;
+
+			index_arr	=	(rand()*34)%70;
+
+			DATI[1][index_arr + 120 + 30]		=	DATI[1][index_arr + 120 + 49] + 0.15;
+			DATI[1][index_arr + 120 + 31]		=	DATI[1][index_arr + 120 + 50] + 0.2;
+			DATI[1][index_arr + 120 + 32]		=	DATI[1][index_arr + 120 + 51] + 0.15;
+
+			DATI[1][index_arr + 120 + 15]		=	DATI[1][index_arr + 120 + 60] + value;
+
+			index_arr	=	(rand()*27)%70;
+
+			DATI[1][index_arr + 240 + 30]		=	DATI[1][index_arr + 240 + 49] + 0.15;
+			DATI[1][index_arr + 240 + 31]		=	DATI[1][index_arr + 240 + 49] + 0.2;
+			DATI[1][index_arr + 240 + 32]		=	DATI[1][index_arr + 240 + 49] + 0.15;
+
+			
+			DATI[1][index_arr + 240 + 15]		=	DATI[1][index_arr + 240] + value;	
+
 		}
 		if(tachycardia){
 			sampler();
@@ -528,6 +567,7 @@ char 	text[4];
 		//calcolo la distanza di campioni tra gli ultimi due picchi, ogni campione corrisponde a 0,0141 secondi
 		distanza_p = picchi[n_picchi - 1] - picchi[n_picchi - 2];
 		distanza_t = distanza_p * 0.008;
+		//printf("DISTANZA T = %f\n", distanza_t);
 		bpm = floor(60/distanza_t);
 
 		//printf("BPM: %d\n", bpm);
@@ -571,49 +611,6 @@ int counter = 1;
 int pivot_points = 0;
 float previous = 0;
 
-	if(tachycardia){
-		random_sampler = rand()%3;
-	} else {
-		random_sampler = rand()%5;
-	}
-
-	if(random_sampler == 0)
-		random_sampler = 1;
-
-	printf("%d\n", random_sampler);
-
-	pivot_points = L / random_sampler;
-
-	//interpolation_lenght = 2*L - pivot_points;
-
-	while(i < L){
-		DATI[1][j]	=	buff_arr[i];
-		i = i + random_sampler; 
-		j++;
-	}
-
-	i = 0;
-
-	while(i < L){
-		DATI[1][j]	=	(buff_arr[i] + previous)/counter;						
-		if(counter == random_sampler + 1){
-			previous = 0;
-			counter = 1;
-			i = i + 1;
-		} else {
-			previous = previous + buff_arr[i];
-			counter++; 
-		}
-		j++;
-	}
-
-	i = 0;
-
-	while(i < L){
-		DATI[1][j]	=	buff_arr[i];
-		j++;
-		i++;
-	}
 
 }
 
