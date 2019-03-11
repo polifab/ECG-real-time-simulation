@@ -1,17 +1,18 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <allegro.h>
-#include <math.h>
-#include <stdbool.h>
-#include "task.h"
+#include 	<stdio.h>
+#include 	<stdlib.h>
+#include 	<pthread.h>
+#include 	<allegro.h>
+#include 	<math.h>
+#include 	<stdbool.h>
+#include 	"task.h"
 
 
-#define 	N 				2
-#define 	M 				360
-#define		L				120
-#define		n 				10
-#define 	SHIFT_NUMBER 	350
+#define 	N 			2
+#define 	M 			360
+#define		L			120
+#define		n 			10
+#define 	q			3
+#define 	SHIFT_NUMBER 		350
 #define		UPDATE_D1		35
 
 // TASKS IDENTIFIER MACRO
@@ -25,38 +26,42 @@
 
 // ************* GLOBAL VARIABLES *****************
 
-bool	quit			=	false;	//	variabile di terminazione 
-bool	stop_graphics	=	true;	//	variabile per lo stop dei thread produttori e consumatori
-bool	fibrillation	=	false;
-bool	tachycardia		=	false;
-bool	arrhythmia		=	false;
-bool	anomaly_fibril	=	false; 	//  variabili per la rilevazione delle anomalie
-bool	anomaly_tachy	=	false;
-bool	anomaly_brady	=	false;
-bool	anomaly_arrhyt	=	false;
+bool		quit		=	false;	//	variabile di terminazione 
+bool		stop_graphics	=	true;	//	variabile per lo stop dei thread produttori e consumatori
+bool		fibrillation	=	false;
+bool		tachycardia	=	false;
+bool		arrhythmia	=	false;
+bool		anomaly_fibril	=	false; 	//  variabili per la rilevazione delle anomalie
+bool		anomaly_tachy	=	false;
+bool		anomaly_brady	=	false;
+bool		anomaly_arrhyt	=	false;
 
-//	gruppo di variabile necessari per la lettura dei dati dai file
+//	gruppo di variabili necessarie per la lettura dei dati dai file
 
-char 	nome_file[M];				
-FILE 	*fp;
-float 	DATI[N][M];
-float 	vettore[M];
-float	aux_draw[M];
-float	samp[M];
-float	buff_arr[L];
-float	arr[M];
+char 		nome_file[M];				
+FILE 		*fp;
+float 		DATI[N][M];
+float 		vettore[M];
+float		aux_draw[M];
+float		samp[M];
+float		buff_arr[L];
+float		arr[M];
 
-//	gruppo per l'esecuzione dei calcoli		
+//	gruppo di variabili per l'esecuzione dei calcoli		
 
-int 	picchi[n];				
-int 	bpm; 
-int 	read_count 	=	 0;
+int 		picchi[n];				
+int 		bpm;
+int 		arrhyt_count 	= 	 0;
+int 		read_count 	=	 0;
+int 		bpm_counter 	= 	 0;
+int		fibrill_vect[n];
+float 		arrhyt_vect[q];
 
 //	mutex
 
 pthread_mutex_t 	mutex = PTHREAD_MUTEX_INITIALIZER;
 
-//	gruppo variabili per la grafica
+//	gruppo di variabili per la grafica
 
 int		x = 1024, y = 600, col = 4;
 int		rect_coord_x1 = 160; // x / 4
@@ -74,18 +79,20 @@ void	* 	anomaly_detector(); // 	task dedito alla rilevazione di anomalie del rit
 
 // ************* FUNCTION PROTOTYPES **********************
 
-bool	init();					//	funzione di inizializzazione di dati, variabili e grafica
-void	init_mutex();					
-bool	carica_matrice();
+bool		init();				//	funzione di inizializzazione di dati, variabili e grafica
+void		init_mutex();					
+bool		carica_matrice();
 int		draw_rect();			//	funzione per il disegno del rettangolo del grafico
-void	read_command(char key);	//	interprete dei comandi inseriti dall'utente
-void	sampler();
+void		read_command(char key);		//	interprete dei comandi inseriti dall'utente
+void		sampler();
 int		arrhythmia_sim();
-void	shift();
+void		shift();
 int		update_D1(int count);
-int 	bpm_calculation(int counter); //funzione per il calcolo dei bpm
-void 	simulation_notice();		  
-void 	warnings();
+int 		bpm_calculation(int counter); 	//funzione per il calcolo dei bpm
+void 		simulation_notice();		  
+void 		warnings();
+void		arrhythmia_detector(); 	      	//funzione per la rilevazione dell'aritmia
+bool		fibrillation_detector(); 	//funzione per la rilevazione della fibrillazione
 
 // ******************************** MAIN FUNCTION *********************************
 
@@ -101,7 +108,7 @@ int main(void)
 	task_create(generatore, GENR_TASK, 125, 500, 20);
 	task_create(user_command, USER_TASK, 100, 80, 20);
 	task_create(info, INFO_TASK, 200, 300, 20);
-	task_create(anomaly_detector, ANOM_TASK, 200, 300, 20);
+	task_create(anomaly_detector, ANOM_TASK, 350, 300, 20);
 
 	// tasks joining
 
@@ -145,7 +152,7 @@ char	key;	//Salviamo qui il carattere inserito dall'utente
 void * generatore()
 {
 
-int 		count = 0;
+int 	count = 0;
 	
 	set_activation(GENR_TASK);
 	
@@ -261,6 +268,7 @@ void * anomaly_detector()
 	while(quit == false) {
 
 		if(!stop_graphics){
+
 			
 			if(bpm >= 100){
 				anomaly_tachy = true;
@@ -274,8 +282,17 @@ void * anomaly_detector()
 				anomaly_brady = false;
 			}
 			
-			
+			//arrhythmia_detector();
+
+			if(fibrillation_detector()){
+				anomaly_fibril = true;
+			}
+			else{
+				anomaly_fibril = false;
+			}
+
 			warnings();
+
 			wait_for_activation(ANOM_TASK);
 		}	
 	}
@@ -483,7 +500,7 @@ int update_D1(int count)
 {
 
 float 		casuale; 
-int			index_arr;
+int		index_arr;
 float		value;
 
 	pthread_mutex_lock(&mutex);
@@ -571,24 +588,27 @@ char 	text[4];
 		bpm = floor(60/distanza_t);
 
 		//printf("BPM: %d\n", bpm);
+		
+		if(bpm < 250 && bpm > 0){
 
-		rectfill(screen, rect_coord_x1-90, rect_coord_y2-4, rect_coord_x1, rect_coord_y2+8, 0); //cancello il precedente valore BPM	
+			rectfill(screen, rect_coord_x1-90, rect_coord_y2-4, rect_coord_x1, rect_coord_y2+8, 0); //cancello il precedente valore BPM	
 
-		if(bpm >= 100){
-			bpm_col = 4;
-		}
-		else if(bpm < 50){
-			bpm_col = 15;
-		}
-		else{
-			bpm_col = 11; 
-		}
+			if(bpm >= 100){
+				bpm_col = 4;
+			}
+			else if(bpm < 50){
+				bpm_col = 15;
+			}
+			else{
+				bpm_col = 11; 
+			}
+			
+			
+			sprintf(text, "%d", bpm);
+			textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2, bpm_col, -1);
 		
-		
-		sprintf(text, "%d", bpm);
-		textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2, bpm_col, -1);
-		
-		
+		}		
+
 		for(i = 0; i < n_picchi + 1; i++) 
 			picchi[i] = 0;
 		counter = 0;
@@ -616,6 +636,109 @@ float previous = 0;
 
 //-----------------------------------------
 
+void arrhythmia_detector()
+{
+
+int 	i = 0;
+
+	bpm_counter++;
+
+
+
+
+	if(bpm_counter > n/2){
+		for(i = 0; i < q; i++){
+			arrhyt_vect[i] = 0;					
+		}	
+		anomaly_arrhyt = false;
+		bpm_counter = 0;
+		arrhyt_count = 0;
+	}	
+
+
+
+
+
+
+	if(arrhyt_count == 0 && bpm > 0){
+		arrhyt_vect[0] = bpm;
+		bpm_counter = 0;
+		printf("Ciao\n");
+		printf("bpm: %d\n", bpm);
+		arrhyt_count++;
+		return;
+	}
+
+
+
+
+
+
+	else if(arrhyt_count == 1){
+		if(bpm > arrhyt_vect[0] + (n * 2) || bpm < arrhyt_vect[0] - (n * 2)){
+			arrhyt_vect[1] = bpm;
+			bpm_counter = 0;
+			arrhyt_count++;	
+			printf("SONO NELL'IF\n");
+			
+		}
+		
+		printf("Ciao, count = 1\n");
+		printf("bpm: %d\n", bpm);
+		return;
+	}
+
+
+
+
+
+
+	else if(arrhyt_count == 2){
+		if(bpm > arrhyt_vect[1] + (n * 2) || bpm < arrhyt_vect[1] - (n * 2)){
+			arrhyt_vect[2] = bpm;
+			anomaly_arrhyt = true;
+			bpm_counter = 0;
+			arrhyt_count = 0;
+			
+		}
+		
+		printf("Ciao, count = 2\n");
+		printf("bpm: %d\n", bpm);
+		return;
+	}
+	
+
+}
+
+//-----------------------------------------
+
+bool fibrillation_detector()
+{
+
+int 	i 	=    0;
+int 	sum	=    0;
+
+	for(i = M - n; i < M ; i++){
+		if(DATI[0][i] > (DATI[0][i-1] + 0.25) || DATI[0][i] < (DATI[0][i-1] - 0.25)){
+			fibrill_vect[i - M + n] = 1;
+		}
+	}
+	
+	for(i = 0; i < n; i++){
+		sum += fibrill_vect[i];
+		
+	}
+
+	//printf("SUM: %d\n", sum);
+	if(sum > 7){
+		return true;
+	} 
+	
+	return false;
+}
+
+//--------------------------------------
+
 void warnings()
 {
 	
@@ -635,7 +758,19 @@ char 	text[48];
 		i++;	
 	}
 	
+	if(anomaly_arrhyt){
+		sprintf(text, "Irregular heartbeat, arrhythmia");
+		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * 22), 1, -1);
+		i++;
+	}
 	
+
+	if(anomaly_fibril){
+		sprintf(text, "Risk of fibrillation");
+		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * 22), 1, -1);
+		i++;
+	}
+
 }
 
 //--------------------------------------
