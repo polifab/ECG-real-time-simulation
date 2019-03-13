@@ -11,10 +11,10 @@
 #define 	M 			360
 #define		L			120
 #define		n 			10
-#define 	q			3
+#define 	q			5
 #define 	SHIFT_NUMBER 		350
 #define		UPDATE_D1		35
-
+#define 	pick_value		0.96
 // TASKS IDENTIFIER MACRO
 
 #define		DRAW_TASK		0
@@ -55,7 +55,8 @@ int 		arrhyt_count 	= 	 0;
 int 		read_count 	=	 0;
 int 		bpm_counter 	= 	 0;
 int		fibrill_vect[n];
-float 		arrhyt_vect[q];
+int 		arrhyt_vect[q];
+int 		bpm_save[q];
 
 //	mutex
 
@@ -91,9 +92,9 @@ int		update_D1(int count);
 int 		bpm_calculation(int counter); 	//funzione per il calcolo dei bpm
 void 		simulation_notice();		  
 void 		warnings();
-void		arrhythmia_detector(); 	      	//funzione per la rilevazione dell'aritmia
+bool		arrhythmia_detector(int beat); 	      	//funzione per la rilevazione dell'aritmia		
 bool		fibrillation_detector(); 	//funzione per la rilevazione della fibrillazione
-
+		
 // ******************************** MAIN FUNCTION *********************************
 
 int main(void)
@@ -282,7 +283,9 @@ void * anomaly_detector()
 				anomaly_brady = false;
 			}
 			
-			//arrhythmia_detector();
+			if(arrhythmia_detector(bpm)){
+				anomaly_arrhyt = true;
+			}
 
 			if(fibrillation_detector()){
 				anomaly_fibril = true;
@@ -321,15 +324,15 @@ char value_x[180];
 	srand(time(NULL));
 
 	carica_matrice();
-    if(allegro_init() != 0)
+   	 if(allegro_init() != 0)
 		return false;
 
-    install_keyboard();
+    	install_keyboard();
 	install_mouse();
-    set_color_depth(8);
-    set_gfx_mode(GFX_AUTODETECT_WINDOWED, x, y, 0, 0); 
-    enable_hardware_cursor();
-    show_mouse(screen);
+    	set_color_depth(8);
+    	set_gfx_mode(GFX_AUTODETECT_WINDOWED, x, y, 0, 0); 
+    	enable_hardware_cursor();
+    	show_mouse(screen);
 	clear_to_color(screen, makecol(0, 0, 0));
 
 	draw_rect();
@@ -390,8 +393,6 @@ bool carica_matrice()
 			buff_arr[i] = vettore[i];
 		}
 		
-		
-		//for(i=L;i<M;i++) printf("%.2f ", DATI[0][i]);
 	}	
 
 	fclose(fp);
@@ -512,26 +513,26 @@ float		value;
 			else
 				casuale = 0;
 
-			DATI[1][i]			= vettore[i] + (casuale/(rand()%100 + 10));
-			DATI[1][i + 120]	= vettore[i] + (casuale/(rand()%150 + 10));
-			DATI[1][i + 240]	= vettore[i] + (casuale/(rand()%50 + 10));
+			DATI[1][i]				=	 vettore[i] + (casuale/(rand()%100 + 10));
+			DATI[1][i + 120]			=	 vettore[i] + (casuale/(rand()%150 + 10));
+			DATI[1][i + 240]			= 	 vettore[i] + (casuale/(rand()%50 + 10));
 
 		}
 		if(arrhythmia){
 
 			for(int i = 25; i < 46; i++){
-				value = 0.1 + (rand()%10)/100.0;
-				DATI[1][i] = value; 
-				DATI[1][i + 120] = value; 
-				DATI[1][i + 240] = value; 			
+					value 				= 	0.1 + (rand()%10)/100.0;
+					DATI[1][i] 	 		= 	value; 
+					DATI[1][i + 120] 		= 	value; 
+					DATI[1][i + 240] 		= 	value; 			
 			}
 			index_arr	=	(rand()*11)%70;
 			value		=	0.9;
-			DATI[1][index_arr+ 30]				=	DATI[1][index_arr + 49] + 0.15;
-			DATI[1][index_arr + 31]				=	DATI[1][index_arr + 50] + 0.2;
-			DATI[1][index_arr + 32]				=	DATI[1][index_arr + 51] + 0.15;
+			DATI[1][index_arr + 30]			=	DATI[1][index_arr + 49] + 0.15;
+			DATI[1][index_arr + 31]			=	DATI[1][index_arr + 50] + 0.2;
+			DATI[1][index_arr + 32]			=	DATI[1][index_arr + 51] + 0.15;
 
-			DATI[1][index_arr + 15]	=	DATI[1][index_arr + 60] + value;
+			DATI[1][index_arr + 15]			=	DATI[1][index_arr + 60] + value;
 
 			index_arr	=	(rand()*34)%70;
 
@@ -574,7 +575,7 @@ char 	text[4];
 	if(counter > 1){
 		pthread_mutex_lock(&mutex);
 		for(i = 0; i < M; i++){
-				if(DATI[0][i] > 0.96){
+				if(DATI[0][i] > pick_value){
 					picchi[n_picchi] = i;
 					//printf("%d\n", i);
 					n_picchi++;
@@ -636,78 +637,52 @@ float previous = 0;
 
 //-----------------------------------------
 
-void arrhythmia_detector()
+bool arrhythmia_detector(int beat)
 {
 
-int 	i = 0;
-
-	bpm_counter++;
-
+int 	i 		=	 0;
+int 	arrhyt_sum 	=	 0;
 
 
+	if(bpm_counter < q){
+		pthread_mutex_lock(&mutex);
 
-	if(bpm_counter > n/2){
-		for(i = 0; i < q; i++){
-			arrhyt_vect[i] = 0;					
-		}	
-		anomaly_arrhyt = false;
-		bpm_counter = 0;
-		arrhyt_count = 0;
-	}	
-
-
-
-
-
-
-	if(arrhyt_count == 0 && bpm > 0){
-		arrhyt_vect[0] = bpm;
-		bpm_counter = 0;
-		printf("Ciao\n");
-		printf("bpm: %d\n", bpm);
-		arrhyt_count++;
-		return;
-	}
-
-
-
-
-
-
-	else if(arrhyt_count == 1){
-		if(bpm > arrhyt_vect[0] + (n * 2) || bpm < arrhyt_vect[0] - (n * 2)){
-			arrhyt_vect[1] = bpm;
-			bpm_counter = 0;
-			arrhyt_count++;	
-			printf("SONO NELL'IF\n");
-			
+		if(bpm > bpm_save[bpm_counter - 1] + n/2 || bpm < bpm_save[bpm_counter - 1] - n/2){
+			if(bpm < 250 && bpm > 0){
+				bpm_save[bpm_counter] = beat;
+				bpm_counter++;
+			}
 		}
-		
-		printf("Ciao, count = 1\n");
-		printf("bpm: %d\n", bpm);
-		return;
-	}
-
-
-
-
-
-
-	else if(arrhyt_count == 2){
-		if(bpm > arrhyt_vect[1] + (n * 2) || bpm < arrhyt_vect[1] - (n * 2)){
-			arrhyt_vect[2] = bpm;
-			anomaly_arrhyt = true;
-			bpm_counter = 0;
-			arrhyt_count = 0;
-			
-		}
-		
-		printf("Ciao, count = 2\n");
-		printf("bpm: %d\n", bpm);
-		return;
-	}
+	pthread_mutex_unlock(&mutex);	
 	
+	}
+		
+	
+	
+	else{
+		for(i = 1; i < q + 1; i++){
+			if(bpm_save[i] > bpm_save[i - 1] + n*2 || bpm_save[i] < bpm_save[i - 1] - n*2){
+				arrhyt_vect[i - 1] = 1;
+			}
+			else {
+				arrhyt_vect[i - 1] = 0;
+			}
+		}
+	bpm_counter = 0;
+	}
 
+	
+	for(i = 0; i < q; i++){
+		arrhyt_sum += arrhyt_vect[i];
+	}	
+	
+	printf("arrhyt_sum: %d\n", arrhyt_sum); 
+	if(arrhyt_sum >= 3){
+		return true;
+	}
+
+		
+	return false;
 }
 
 //-----------------------------------------
@@ -722,11 +697,13 @@ int 	sum	=    0;
 		if(DATI[0][i] > (DATI[0][i-1] + 0.25) || DATI[0][i] < (DATI[0][i-1] - 0.25)){
 			fibrill_vect[i - M + n] = 1;
 		}
+		else{
+			fibrill_vect[i - M + n] = 0;
+		}
 	}
 	
 	for(i = 0; i < n; i++){
 		sum += fibrill_vect[i];
-		
 	}
 
 	//printf("SUM: %d\n", sum);
@@ -759,7 +736,7 @@ char 	text[48];
 	}
 	
 	if(anomaly_arrhyt){
-		sprintf(text, "Irregular heartbeat, arrhythmia");
+		sprintf(text, "Irregular beat, arrhythmia");
 		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * 22), 1, -1);
 		i++;
 	}
