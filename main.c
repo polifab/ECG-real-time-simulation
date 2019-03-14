@@ -15,6 +15,7 @@
 #define 	SHIFT_NUMBER 		350
 #define		UPDATE_D1		35
 #define 	pick_value		0.96
+
 // TASKS IDENTIFIER MACRO
 
 #define		DRAW_TASK		0
@@ -23,6 +24,10 @@
 #define		INFO_TASK		3
 #define		ANOM_TASK		4
 
+// LIMIT DETECTOR MACRO
+
+#define		fibril_limit		7
+#define 	arrhyt_limit		3
 
 // ************* GLOBAL VARIABLES *****************
 
@@ -157,9 +162,9 @@ int 	count = 0;
 	
 	set_activation(GENR_TASK);
 	
-	while(quit == false) {
+	while (quit == false) {
 
-		if(!stop_graphics){
+		if (!stop_graphics){
 			
 			pthread_mutex_lock(&mutex);
 
@@ -190,9 +195,9 @@ int i;
 
 	set_activation(DRAW_TASK);
 
-	while(quit == false) {
+	while (quit == false) {
 
-		if(!stop_graphics){ //se l'utente setta a true stop_graphics blocca
+		if (!stop_graphics){ //se l'utente setta a true stop_graphics blocca
 		
 			draw_rect(); // cancello il grafico precedente
 
@@ -240,13 +245,13 @@ int i;
 void *info()
 {
 	
-int counter = 0;
+int 	counter	= 0;
 	
 	set_activation(INFO_TASK);
 
 	while(quit == false) {
 
-		if(!stop_graphics){
+		if (!stop_graphics) {
 			//wait_for_activation(INFO_TASK);
 			
 			counter++;
@@ -264,36 +269,37 @@ int counter = 0;
 
 void * anomaly_detector()
 {
+
 	set_activation(ANOM_TASK);
 
-	while(quit == false) {
+	while (quit == false) {
 
-		if(!stop_graphics){
+		if (!stop_graphics) {
 
 			
-			if(bpm >= 100){
+			if (bpm >= 100) {
 				anomaly_tachy = true;
-			} else{
+			} else {
 				anomaly_tachy = false;
 			} 
 			
-			if(bpm <= 50){
+
+			if (bpm <= 50) {
 				anomaly_brady = true;
-			} else{
+			} else {
 				anomaly_brady = false;
 			}
 			
-			if(arrhythmia_detector(bpm)){
+
+			if (arrhythmia_detector(bpm)) {
 				anomaly_arrhyt = true;
-			}
-			else{
+			} else {
 				anomaly_arrhyt = false;
 			}
 
-			if(fibrillation_detector()){
+			if (fibrillation_detector()) {
 				anomaly_fibril = true;
-			}
-			else{
+			} else {
 				anomaly_fibril = false;
 			}
 
@@ -312,7 +318,7 @@ void init_mutex()
 {
 	if (pthread_mutex_init(&mutex, NULL) != 0) {
         printf("\n mutex init failed\n");
-    } else {
+   	} else {
 		printf("\n mutex init ok\n");
 	}
 }
@@ -327,7 +333,7 @@ char value_x[180];
 	srand(time(NULL));
 
 	carica_matrice();
-   	 if(allegro_init() != 0)
+   	 if (allegro_init() != 0)
 		return false;
 
     	install_keyboard();
@@ -367,7 +373,7 @@ bool carica_matrice()
 {
 	
 	fp = fopen("ptbdb_normal.csv", "r");
-	if(fp == NULL){
+	if (fp == NULL) {
 		return false;
 	}
 	else {
@@ -375,12 +381,12 @@ bool carica_matrice()
 		for(i = 0; i < L; i++){
 			fscanf(fp, "%e,", &DATI[0][i]);
 			//printf("%e\n", DATI[0][i]);
-			if(i < 10){
+			if (i < 10) {
 				vettore[i] = 0.1;
 				vettore[i+120] = 0.1;
 				vettore[i+240] = 0.1;
 			}
-			else{
+			else {
 				vettore[i] = DATI[0][i];
 				vettore[i+120] = DATI[0][i];
 				vettore[i+240] = DATI[0][i];
@@ -392,7 +398,7 @@ bool carica_matrice()
 			DATI[0][i+240] = DATI[1][i];
 		}
 		
-		for(i = 0; i < L; i++){
+		for (i = 0; i < L; i++) {
 			buff_arr[i] = vettore[i];
 		}
 		
@@ -411,18 +417,19 @@ int draw_rect()
 	rectfill(screen, rect_coord_x1, rect_coord_y1, rect_coord_x2, rect_coord_y2, 15);
 	rect(screen, rect_coord_x1, rect_coord_y1, rect_coord_x2, rect_coord_y2, 4);
 	
-	for(int i = 0; i < 48; i++){
+	for (int i = 0; i < 48; i++) {
 		if(i % 4 == 0)
 			line(screen, rect_coord_x1 + i*10, rect_coord_y1, rect_coord_x1 + i*10, rect_coord_y2, 12); // 11
 		else
 			line(screen, rect_coord_x1 + i*10, rect_coord_y1, rect_coord_x1 + i*10, rect_coord_y2, makecol(255,150,150));
-		if(i > 35)
+		if (i > 35)
 			continue;
-		if(i % 4 == 0)
+		if (i % 4 == 0)
 			line(screen, rect_coord_x1, rect_coord_y1 - i*10, rect_coord_x2, rect_coord_y1 - i*10, 12);
 		else
 			line(screen, rect_coord_x1, rect_coord_y1 - i*10, rect_coord_x2, rect_coord_y1 - i*10, makecol(255,150,150));			
 	}
+
 	return 0;
 }
 
@@ -430,7 +437,8 @@ int draw_rect()
 
 void read_command(char key)
 {
-	switch(key){
+
+	switch (key) {
 
 		case 'q':
 			quit = true;
@@ -455,6 +463,7 @@ void read_command(char key)
 			break;
 
 	}
+
 	return;
 }
 
@@ -463,12 +472,12 @@ void read_command(char key)
 void sampler()
 {
 
-	if(tachycardia == false)
+	if (tachycardia == false)
 		return;
 
 int i = 0, j = 0;
 
-	for(i = 0; i < M/2; i++){
+	for (i = 0; i < M/2; i++) {
 		samp[i]		= DATI[1][2 * i];
 		samp[i + 59]	= DATI[1][2 * i];
 		samp[i + 119]	= DATI[1][2 * i];
@@ -482,13 +491,13 @@ int i = 0, j = 0;
 void shift(int count)
 {
 	pthread_mutex_lock(&mutex);
-	for(int i = 0; i < M; i++){
-		if(i < SHIFT_NUMBER){
+	for (int i = 0; i < M; i++) {
+		if (i < SHIFT_NUMBER ){
 			//printf("%.2f\n", DATI[0][i+10]);
 			DATI[0][i] = DATI[0][i + 10];
 		}
-		else{
-			if(tachycardia){ // FIXME
+		else {
+			if (tachycardia) { // FIXME
 				DATI[0][i] = samp[i - 350 + (count * 10)];
 			} else {
 				DATI[0][i] = DATI[1][i - 350 + (count * 10)];
@@ -503,15 +512,17 @@ void shift(int count)
 int update_D1(int count)
 {
 
-float 		casuale; 
-int		index_arr;
-float		value;
+float 	casuale; 
+float	value;
+int	index_arr;
+int 	i	=	0;
+
 
 	pthread_mutex_lock(&mutex);
-	if(count > UPDATE_D1){
+	if (count > UPDATE_D1) {
 		//printf("[COUNT %d]\n", count);
-		for(int i = 0; i < L; i++){
-			if(fibrillation) 
+		for (i = 0; i < L; i++) {
+			if (fibrillation) 
 				casuale = rand()%10; 
 			else
 				casuale = 0;
@@ -521,9 +532,9 @@ float		value;
 			DATI[1][i + 240]			= 	 vettore[i] + (casuale/(rand()%50 + 10));
 
 		}
-		if(arrhythmia){
+		if (arrhythmia) {
 
-			for(int i = 25; i < 46; i++){
+			for (i = 25; i < 46; i++) {
 					value 				= 	0.1 + (rand()%10)/100.0;
 					DATI[1][i] 	 		= 	value; 
 					DATI[1][i + 120] 		= 	value; 
@@ -555,7 +566,7 @@ float		value;
 			DATI[1][index_arr + 240 + 15]		=	DATI[1][index_arr + 240] + value;	
 
 		}
-		if(tachycardia){
+		if (tachycardia) {
 			sampler();
 		}
 		count = 0;
@@ -575,10 +586,11 @@ int 	bpm_col;
 float 	distanza_t; //distanza temporale
 char 	text[4];
 	
-	if(counter > 1){
+
+	if (counter > 1) {
 		pthread_mutex_lock(&mutex);
-		for(i = 0; i < M; i++){
-				if(DATI[0][i] > pick_value){
+		for (i = 0; i < M; i++) {
+				if (DATI[0][i] > pick_value) {
 					picchi[n_picchi] = i;
 					//printf("%d\n", i);
 					n_picchi++;
@@ -593,17 +605,17 @@ char 	text[4];
 
 		//printf("BPM: %d\n", bpm);
 		
-		if(bpm < 250 && bpm > 0){
+		if (bpm < 250 && bpm > 0) {
 
 			rectfill(screen, rect_coord_x1-90, rect_coord_y2-4, rect_coord_x1, rect_coord_y2+8, 0); //cancello il precedente valore BPM	
 
-			if(bpm >= 100){
+			if (bpm >= 100) {
 				bpm_col = 4;
 			}
-			else if(bpm < 50){
+			else if (bpm < 50) {
 				bpm_col = 15;
 			}
-			else{
+			else {
 				bpm_col = 11; 
 			}
 			
@@ -613,7 +625,7 @@ char 	text[4];
 		
 		}		
 
-		for(i = 0; i < n_picchi + 1; i++) 
+		for (i = 0; i < n_picchi + 1; i++) 
 			picchi[i] = 0;
 		counter = 0;
 	}
@@ -647,11 +659,11 @@ int 	i 		=	 0;
 int 	arrhyt_sum 	=	 0;
 
 
-	if(bpm_counter < q){
+	if (bpm_counter < q) {
 		pthread_mutex_lock(&mutex);
 
-		if(bpm > bpm_save[bpm_counter - 1] + n/2 || bpm < bpm_save[bpm_counter - 1] - n/2){
-			if(bpm < 250 && bpm > 0){
+		if (bpm > bpm_save[bpm_counter - 1] + n/2 || bpm < bpm_save[bpm_counter - 1] - n/2) {
+			if (bpm < 250 && bpm > 0) {
 				bpm_save[bpm_counter] = beat;
 				bpm_counter++;
 				arrhyt_count = 0;
@@ -659,8 +671,8 @@ int 	arrhyt_sum 	=	 0;
 		}
 		
 
-		if(arrhyt_count >= q) {
-			for(i = 0; i < q; i++){
+		if (arrhyt_count >= q) {
+			for (i = 0; i < q; i++) {
 				arrhyt_vect[i] = 0;
 			}
 		}
@@ -668,10 +680,10 @@ int 	arrhyt_sum 	=	 0;
 	} 
 	
 		
-	else{
+	else {
 		i = 0;
-		while(bpm_save[i] > 0){
-			if(bpm_save[i + 1] > bpm_save[i] + n*2 || bpm_save[i + 1] < bpm_save[i] - n*2){
+		while (bpm_save[i] > 0) {
+			if (bpm_save[i + 1] > bpm_save[i] + n*2 || bpm_save[i + 1] < bpm_save[i] - n*2) {
 				arrhyt_vect[i] = 1;
 			}
 			else {
@@ -684,19 +696,19 @@ int 	arrhyt_sum 	=	 0;
 	}
 
 	
-	for(i = 0; i < q; i++){
+	for (i = 0; i < q; i++) {
 		arrhyt_sum += arrhyt_vect[i];
 	}
 	
 	
 	//printf("arrhyt_sum: %d\n", arrhyt_sum); 
-	if(arrhyt_sum >= 3){
+	if (arrhyt_sum >= arrhyt_limit) {
 		arrhyt_sum = 0;
 		return true;
 	}
 
 	
-	else{	
+	else {	
 		arrhyt_sum = 0;
 		return false;
 	}
@@ -710,21 +722,21 @@ bool fibrillation_detector()
 int 	i 	=    0;
 int 	sum	=    0;
 
-	for(i = M - n; i < M ; i++){
-		if(DATI[0][i] > (DATI[0][i-1] + 0.25) || DATI[0][i] < (DATI[0][i-1] - 0.25)){
+	for (i = M - n; i < M ; i++) {
+		if (DATI[0][i] > (DATI[0][i-1] + 0.25) || DATI[0][i] < (DATI[0][i-1] - 0.25)) {
 			fibrill_vect[i - M + n] = 1;
 		}
-		else{
+		else {
 			fibrill_vect[i - M + n] = 0;
 		}
 	}
 	
-	for(i = 0; i < n; i++){
+	for (i = 0; i < n; i++) {
 		sum += fibrill_vect[i];
 	}
 
 	//printf("SUM: %d\n", sum);
-	if(sum > 7){
+	if (sum > fibril_limit) {
 		return true;
 	} 
 	
@@ -741,25 +753,25 @@ char 	text[48];
 	
 	rectfill(screen, rect_coord_x2 + 65, rect_coord_y2 + 3, rect_coord_x2 + 295, rect_coord_y2 + 355, 15);
 	
-	if(anomaly_tachy){
+	if (anomaly_tachy) {
 		sprintf(text, "High heartbeat, tachycardia");
 		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * 22), 1, -1);
 		i++;
 	}
-	else if(anomaly_brady){
+	else if (anomaly_brady) {
 		sprintf(text, "Slow heartbeat, bradycardia");
 		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * 22), 1, -1);
 		i++;	
 	}
 	
-	if(anomaly_arrhyt){
+	if (anomaly_arrhyt) {
 		sprintf(text, "Irregular beat, arrhythmia");
 		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * 22), 1, -1);
 		i++;
 	}
 	
 
-	if(anomaly_fibril){
+	if (anomaly_fibril) {
 		sprintf(text, "Risk of fibrillation");
 		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * 22), 1, -1);
 		i++;
@@ -778,19 +790,19 @@ char 	text[48];
 	
 	rectfill(screen, rect_coord_x1, rect_coord_y2 - 100, rect_coord_x1 + 500, rect_coord_y2 - 30, 0);
 	
-	if(tachycardia){
+	if (tachycardia) {
 		sprintf(text, "Tachycardia simulation in progress");
 		textout_centre_ex(screen, font, text, rect_coord_x1 + 320, rect_coord_y2 - 100 + (i * 22), 2, -1);
 		i++;
 	}	
 	
-	if(arrhythmia){
+	if (arrhythmia) {
 		sprintf(text, "Arrhythmia simulation in progress");
 		textout_centre_ex(screen, font, text, rect_coord_x1 + 320, rect_coord_y2 - 100 + (i * 22), 2, -1);
 		i++;
 	}
 	
-	if(fibrillation){
+	if (fibrillation) {
 		sprintf(text, "Fibrillation simulation in progress");
 		textout_centre_ex(screen, font, text, rect_coord_x1 + 320, rect_coord_y2 - 100 + (i * 22), 2, -1);
 		i++;
