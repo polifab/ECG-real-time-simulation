@@ -286,6 +286,9 @@ void * anomaly_detector()
 			if(arrhythmia_detector(bpm)){
 				anomaly_arrhyt = true;
 			}
+			else{
+				anomaly_arrhyt = false;
+			}
 
 			if(fibrillation_detector()){
 				anomaly_fibril = true;
@@ -651,38 +654,52 @@ int 	arrhyt_sum 	=	 0;
 			if(bpm < 250 && bpm > 0){
 				bpm_save[bpm_counter] = beat;
 				bpm_counter++;
+				arrhyt_count = 0;
 			}
 		}
-	pthread_mutex_unlock(&mutex);	
-	
-	}
 		
+
+		if(arrhyt_count >= q) {
+			for(i = 0; i < q; i++){
+				arrhyt_vect[i] = 0;
+			}
+		}
+		pthread_mutex_unlock(&mutex);	
+	} 
 	
-	
+		
 	else{
-		for(i = 1; i < q + 1; i++){
-			if(bpm_save[i] > bpm_save[i - 1] + n*2 || bpm_save[i] < bpm_save[i - 1] - n*2){
-				arrhyt_vect[i - 1] = 1;
+		i = 0;
+		while(bpm_save[i] > 0){
+			if(bpm_save[i + 1] > bpm_save[i] + n*2 || bpm_save[i + 1] < bpm_save[i] - n*2){
+				arrhyt_vect[i] = 1;
 			}
 			else {
-				arrhyt_vect[i - 1] = 0;
+				arrhyt_vect[i] = 0;
 			}
+			i++;
 		}
-	bpm_counter = 0;
+	
+		bpm_counter = 0;
 	}
 
 	
 	for(i = 0; i < q; i++){
 		arrhyt_sum += arrhyt_vect[i];
-	}	
+	}
 	
-	printf("arrhyt_sum: %d\n", arrhyt_sum); 
+	
+	//printf("arrhyt_sum: %d\n", arrhyt_sum); 
 	if(arrhyt_sum >= 3){
+		arrhyt_sum = 0;
 		return true;
 	}
 
-		
-	return false;
+	
+	else{	
+		arrhyt_sum = 0;
+		return false;
+	}
 }
 
 //-----------------------------------------
