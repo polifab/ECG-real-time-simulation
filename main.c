@@ -30,6 +30,13 @@
 #define		fibril_limit		7
 #define 	arrhyt_limit		3
 
+// CODE FOR SAVING ANOMALY
+
+#define 	fibrillation_code	50
+#define 	arrhytmia_code 		60
+#define 	tachycardia_code 	70
+#define 	bradycardia_code 	80
+
 // ************* GLOBAL VARIABLES *****************
 
 bool		quit		=	false;	//	variabile di terminazione 
@@ -42,7 +49,7 @@ bool		anomaly_tachy	=	false;
 bool		anomaly_brady	=	false;
 bool		anomaly_arrhyt	=	false;
 
-//	gruppo di variabili necessarie per la lettura dei dati dai file
+//	gruppo di variabili necessarie per la lettura/scrittura dei dati dai file
 
 char 		nome_file[M];				
 FILE 		*fp;
@@ -53,6 +60,7 @@ float		aux_draw[M];
 float		samp[M];
 float		buff_arr[L];
 float		arr[M];
+float		anomaly_note[N][M];		//variabile in cui vengono salvate le anomalie per la successiva scrittura su file
 
 //	gruppo di variabili per l'esecuzione dei calcoli		
 
@@ -66,6 +74,7 @@ int 		arrhyt_vect[q];
 int 		bpm_save[q];
 int 		count_time 	= 	 0;
 float		moment;
+int 		anomaly_count 	= 	 0;
 
 //	mutex
 
@@ -104,7 +113,8 @@ void 		simulation_notice();
 void 		warnings();
 bool		arrhythmia_detector(int beat); 	//funzione per la rilevazione dell'aritmia		
 bool		fibrillation_detector(); 	//funzione per la rilevazione della fibrillazione
-bool		write_anomaly(float time_);	//funzione per la scrittura su file
+void		anomaly_save(float time_);	
+bool		write_anomaly();		//funzione per la scrittura su file
 
 // ******************************** MAIN FUNCTION *********************************
 
@@ -135,7 +145,8 @@ int main(void)
 	pthread_join(tid[ANOM_TASK],NULL);
 	printf("ANOMALY DETECTOR TASK\n");
 
-	
+	write_anomaly();
+
 	return 0;
 }
 
@@ -264,10 +275,10 @@ int 	counter	= 0;
 			bpm_calculation(counter);
 			simulation_notice();
 			
-			//scrivo le informazione su file
 			//ogni campione vale 0.008 s
 			moment = count_time * sampling_time * n;
-			write_anomaly(moment);
+			//conservo la anomalia riscontrata al tempo corrente
+			anomaly_save(moment);
 			
 			//pthread_mutex_unlock(&mutex);
 			wait_for_activation(INFO_TASK);
@@ -826,35 +837,74 @@ char 	text[48];
 
 //--------------------------------------
 
-bool write_anomaly(float time_)
+void anomaly_save(float moment)
 {
 
-	printf("MOMENT: %f\n", time_);
-
-	fw = fopen("ECG_report.txt", "w");
-	if (fp == NULL) {
-		return false;
-	}
 	
 	if (anomaly_tachy) {
-		fprintf(fw, "Tachicardia rilevata al tempo %f\n\n", time_);
+		anomaly_note[0][anomaly_count] = tachycardia_code;
+		anomaly_note[1][anomaly_count] = moment;
+		anomaly_count++;
+	}
+	
+	if (anomaly_brady) {
+		anomaly_note[0][anomaly_count] = bradycardia_code;
+		anomaly_note[1][anomaly_count] = moment;
+		anomaly_count++;
 	}
 
-	if (anomaly_brady) {
-		fprintf(fw, "Bradicardia rilevata al tempo %f\n\n", time_);
-	}
-	
 	if (anomaly_arrhyt) {
-		fprintf(fw, "Aritmia rilevata al tempo %f\n\n", time_);
+		anomaly_note[0][anomaly_count] = arrhytmia_code;
+		anomaly_note[1][anomaly_count] = moment;
+		anomaly_count++;
 	}
-	
+
 	if (anomaly_fibril) {
-		fprintf(fw, "Fibrillazione rilevata al tempo %f\n\n", time_);
+		anomaly_note[0][anomaly_count] = fibrillation_code;
+		anomaly_note[1][anomaly_count] = moment;
+		anomaly_count++;
 	}
+
+
+}
+
+//--------------------------------------
+
+bool write_anomaly()
+{
+
+int 	i = 0;
+
+
+	fw = fopen("ECG_report.txt", "w");
+	if (fw == NULL) {
+		return false;
+	}
+
+	while (anomaly_note[0][i] > 0){
+	
+		if (anomaly_note[0][i] == tachycardia_code) {
+			fprintf(fw, "Tachicardia rilevata al tempo %f\n\n", anomaly_note[1][i]);
+		}
 		
+		if (anomaly_note[0][i] == bradycardia_code) {
+			fprintf(fw, "Bradicardia rilevata al tempo %f\n\n", anomaly_note[1][i]);
+		}
+
+		if (anomaly_note[0][i] == arrhytmia_code) {
+			fprintf(fw, "Aritmia rilevata al tempo %f\n\n", anomaly_note[1][i]);
+		}
+		
+		if (anomaly_note[0][i] == fibrillation_code) {
+			fprintf(fw, "Fibrillazione rilevata al tempo %f\n\n", anomaly_note[1][i]);
+		}
+
+		i++;
+	}
+
+
 	fclose(fw);
 
-	return true;
 
 }
 
