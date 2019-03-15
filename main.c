@@ -14,8 +14,8 @@
 #define 	q			5
 #define 	SHIFT_NUMBER 		350
 #define		UPDATE_D1		35
-#define 	pick_value		0.96
-#define 	sampling_time		0.008
+#define 	PICK_VALUE		0.96
+#define 	SAMPLING_TIME		0.008
 
 // TASKS IDENTIFIER MACRO
 
@@ -32,10 +32,10 @@
 
 // CODE FOR SAVING ANOMALY
 
-#define 	fibrillation_code	50
-#define 	arrhytmia_code 		60
-#define 	tachycardia_code 	70
-#define 	bradycardia_code 	80
+#define 	FIBRILLATION_CODE	50
+#define 	ARRHYTMIA_CODE 		60
+#define 	TACHYCARDIA_CODE 	70
+#define 	BRADYCARDIA_CODE 	80
 
 // ************* GLOBAL VARIABLES *****************
 
@@ -276,7 +276,7 @@ int 	counter	= 0;
 			simulation_notice();
 			
 			//ogni campione vale 0.008 s
-			moment = count_time * sampling_time * n;
+			moment = count_time * SAMPLING_TIME * n;
 			//conservo la anomalia riscontrata al tempo corrente
 			anomaly_save(moment);
 			
@@ -615,7 +615,7 @@ char 	text[q];
 	if (counter > 1) {
 		pthread_mutex_lock(&mutex);
 		for (i = 0; i < M; i++) {
-				if (DATI[0][i] > pick_value) {
+				if (DATI[0][i] > PICK_VALUE) {
 					picchi[n_picchi] = i;
 					//printf("%d\n", i);
 					n_picchi++;
@@ -624,7 +624,7 @@ char 	text[q];
 		pthread_mutex_unlock(&mutex);
 		//calcolo la distanza di campioni tra gli ultimi due picchi, ogni campione corrisponde a 0,0141 secondi
 		distanza_p = picchi[n_picchi - 1] - picchi[n_picchi - 2];
-		distanza_t = distanza_p * sampling_time;
+		distanza_t = distanza_p * SAMPLING_TIME;
 		//printf("DISTANZA T = %f\n", distanza_t);
 		bpm = floor(60/distanza_t);
 
@@ -842,25 +842,25 @@ void anomaly_save(float moment)
 
 	
 	if (anomaly_tachy) {
-		anomaly_note[0][anomaly_count] = tachycardia_code;
+		anomaly_note[0][anomaly_count] = TACHYCARDIA_CODE;
 		anomaly_note[1][anomaly_count] = moment;
 		anomaly_count++;
 	}
 	
 	if (anomaly_brady) {
-		anomaly_note[0][anomaly_count] = bradycardia_code;
+		anomaly_note[0][anomaly_count] = BRADYCARDIA_CODE;
 		anomaly_note[1][anomaly_count] = moment;
 		anomaly_count++;
 	}
 
 	if (anomaly_arrhyt) {
-		anomaly_note[0][anomaly_count] = arrhytmia_code;
+		anomaly_note[0][anomaly_count] = ARRHYTMIA_CODE;
 		anomaly_note[1][anomaly_count] = moment;
 		anomaly_count++;
 	}
 
 	if (anomaly_fibril) {
-		anomaly_note[0][anomaly_count] = fibrillation_code;
+		anomaly_note[0][anomaly_count] = FIBRILLATION_CODE;
 		anomaly_note[1][anomaly_count] = moment;
 		anomaly_count++;
 	}
@@ -883,19 +883,19 @@ int 	i = 0;
 
 	while (anomaly_note[0][i] > 0){
 	
-		if (anomaly_note[0][i] == tachycardia_code) {
+		if (anomaly_note[0][i] == TACHYCARDIA_CODE) {
 			fprintf(fw, "Tachicardia rilevata al tempo %f\n\n", anomaly_note[1][i]);
 		}
 		
-		if (anomaly_note[0][i] == bradycardia_code) {
+		if (anomaly_note[0][i] == BRADYCARDIA_CODE) {
 			fprintf(fw, "Bradicardia rilevata al tempo %f\n\n", anomaly_note[1][i]);
 		}
 
-		if (anomaly_note[0][i] == arrhytmia_code) {
+		if (anomaly_note[0][i] == ARRHYTMIA_CODE) {
 			fprintf(fw, "Aritmia rilevata al tempo %f\n\n", anomaly_note[1][i]);
 		}
 		
-		if (anomaly_note[0][i] == fibrillation_code) {
+		if (anomaly_note[0][i] == FIBRILLATION_CODE) {
 			fprintf(fw, "Fibrillazione rilevata al tempo %f\n\n", anomaly_note[1][i]);
 		}
 
