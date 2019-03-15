@@ -15,6 +15,7 @@
 #define 	SHIFT_NUMBER 		350
 #define		UPDATE_D1		35
 #define 	pick_value		0.96
+#define 	sampling_time		0.008
 
 // TASKS IDENTIFIER MACRO
 
@@ -45,6 +46,7 @@ bool		anomaly_arrhyt	=	false;
 
 char 		nome_file[M];				
 FILE 		*fp;
+FILE 		*fw;
 float 		DATI[N][M];
 float 		vettore[M];
 float		aux_draw[M];
@@ -62,6 +64,8 @@ int 		bpm_counter 	= 	 0;
 int		fibrill_vect[n];
 int 		arrhyt_vect[q];
 int 		bpm_save[q];
+int 		count_time 	= 	 0;
+float		moment;
 
 //	mutex
 
@@ -77,11 +81,12 @@ int		rect_coord_y2 = 120;
 
 // ************* TASK PROTOTYPES ****************************
 
-void	*	draw_function();	//	task dedito ad aggiornare la grafica (consumatore)
-void	*	user_command();		//	task dedito alla lettura dei comandi dell'utente
-void 	* 	generatore();		//	task dedito alla generazione dei valori dell'ecg (produttore)
+void	*	draw_function();		//	task dedito ad aggiornare la grafica (consumatore)
+void	*	user_command();			//	task dedito alla lettura dei comandi dell'utente
+void 	* 	generatore();			//	task dedito alla generazione dei valori dell'ecg (produttore)
 void	* 	info();				//	task dedito ai calcoli relativi l'analisi dell'ecg
-void	* 	anomaly_detector(); // 	task dedito alla rilevazione di anomalie del ritmo sinusale
+void	* 	anomaly_detector(); 		// 	task dedito alla rilevazione di anomalie del ritmo sinusale
+void 	*	write_report(); 		//	task dedito alla scrittura su file delle anomalie riscontrate
 
 // ************* FUNCTION PROTOTYPES **********************
 
@@ -97,9 +102,10 @@ int		update_D1(int count);
 int 		bpm_calculation(int counter); 	//funzione per il calcolo dei bpm
 void 		simulation_notice();		  
 void 		warnings();
-bool		arrhythmia_detector(int beat); 	      	//funzione per la rilevazione dell'aritmia		
+bool		arrhythmia_detector(int beat); 	//funzione per la rilevazione dell'aritmia		
 bool		fibrillation_detector(); 	//funzione per la rilevazione della fibrillazione
-		
+bool		write_anomaly(float time_);	//funzione per la scrittura su file
+
 // ******************************** MAIN FUNCTION *********************************
 
 int main(void)
@@ -110,11 +116,11 @@ int main(void)
 
 	// tasks creation
 
-	task_create(draw_function, DRAW_TASK, 125, 500, 20);
-	task_create(generatore, GENR_TASK, 125, 500, 20);
+	task_create(draw_function, DRAW_TASK, 82, 500, 20);
+	task_create(generatore, GENR_TASK, 82, 500, 20);
 	task_create(user_command, USER_TASK, 100, 80, 20);
 	task_create(info, INFO_TASK, 200, 300, 20);
-	task_create(anomaly_detector, ANOM_TASK, 350, 300, 20);
+	task_create(anomaly_detector, ANOM_TASK, 400, 300, 20);
 
 	// tasks joining
 
@@ -164,7 +170,7 @@ int 	count = 0;
 	
 	while (quit == false) {
 
-		if (!stop_graphics){
+		if (!stop_graphics) {
 			
 			pthread_mutex_lock(&mutex);
 
@@ -176,7 +182,7 @@ int 	count = 0;
 
 			//shift DATI[0]
 			shift(count);
-
+			
 			count++;				
 			
 		}
@@ -197,7 +203,7 @@ int i;
 
 	while (quit == false) {
 
-		if (!stop_graphics){ //se l'utente setta a true stop_graphics blocca
+		if (!stop_graphics) { //se l'utente setta a true stop_graphics blocca
 		
 			draw_rect(); // cancello il grafico precedente
 
@@ -249,7 +255,7 @@ int 	counter	= 0;
 	
 	set_activation(INFO_TASK);
 
-	while(quit == false) {
+	while (quit == false) {
 
 		if (!stop_graphics) {
 			//wait_for_activation(INFO_TASK);
@@ -258,10 +264,15 @@ int 	counter	= 0;
 			bpm_calculation(counter);
 			simulation_notice();
 			
+			//scrivo le informazione su file
+			//ogni campione vale 0.008 s
+			moment = count_time * sampling_time * n;
+			write_anomaly(moment);
+			
 			//pthread_mutex_unlock(&mutex);
 			wait_for_activation(INFO_TASK);
 			
-		}	
+		} 
 	}
 }
 
@@ -326,14 +337,14 @@ void init_mutex()
 bool init()
 {
 
-char text[24];
-char value_x[180];
+char 	text[24];
+char 	value_x[180];
 
 	//init_mutex();
 	srand(time(NULL));
 
 	carica_matrice();
-   	 if (allegro_init() != 0)
+   	if (allegro_init() != 0)
 		return false;
 
     	install_keyboard();
@@ -504,6 +515,8 @@ void shift(int count)
 			}
 		}
 	}
+
+	count_time++;
 	pthread_mutex_unlock(&mutex);
 }
 
@@ -571,6 +584,7 @@ int 	i	=	0;
 		}
 		count = 0;
 	}
+
 	pthread_mutex_unlock(&mutex);
 	return count;
 }
@@ -584,7 +598,7 @@ int 	n_picchi 	= 	0;
 int 	distanza_p, i;
 int 	bpm_col;
 float 	distanza_t; //distanza temporale
-char 	text[4];
+char 	text[q];
 	
 
 	if (counter > 1) {
@@ -599,7 +613,7 @@ char 	text[4];
 		pthread_mutex_unlock(&mutex);
 		//calcolo la distanza di campioni tra gli ultimi due picchi, ogni campione corrisponde a 0,0141 secondi
 		distanza_p = picchi[n_picchi - 1] - picchi[n_picchi - 2];
-		distanza_t = distanza_p * 0.008;
+		distanza_t = distanza_p * sampling_time;
 		//printf("DISTANZA T = %f\n", distanza_t);
 		bpm = floor(60/distanza_t);
 
@@ -810,18 +824,39 @@ char 	text[48];
 	
 }
 
+//--------------------------------------
 
+bool write_anomaly(float time_)
+{
 
+	printf("MOMENT: %f\n", time_);
 
+	fw = fopen("ECG_report.txt", "w");
+	if (fp == NULL) {
+		return false;
+	}
+	
+	if (anomaly_tachy) {
+		fprintf(fw, "Tachicardia rilevata al tempo %f\n\n", time_);
+	}
 
+	if (anomaly_brady) {
+		fprintf(fw, "Bradicardia rilevata al tempo %f\n\n", time_);
+	}
+	
+	if (anomaly_arrhyt) {
+		fprintf(fw, "Aritmia rilevata al tempo %f\n\n", time_);
+	}
+	
+	if (anomaly_fibril) {
+		fprintf(fw, "Fibrillazione rilevata al tempo %f\n\n", time_);
+	}
+		
+	fclose(fw);
 
+	return true;
 
-
-
-
-
-
-
+}
 
 
 
