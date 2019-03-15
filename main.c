@@ -27,8 +27,8 @@
 
 // LIMIT DETECTOR MACRO
 
-#define		fibril_limit		7
-#define 	arrhyt_limit		3
+#define		FIBRIL_LIMIT		7
+#define 	ARRHYT_LIMIT		3
 
 // CODE FOR SAVING ANOMALY
 
@@ -727,7 +727,7 @@ int 	arrhyt_sum 	=	 0;
 	
 	
 	//printf("arrhyt_sum: %d\n", arrhyt_sum); 
-	if (arrhyt_sum >= arrhyt_limit) {
+	if (arrhyt_sum >= ARRHYT_LIMIT) {
 		arrhyt_sum = 0;
 		return true;
 	}
@@ -761,7 +761,7 @@ int 	sum	=    0;
 	}
 
 	//printf("SUM: %d\n", sum);
-	if (sum > fibril_limit) {
+	if (sum > FIBRIL_LIMIT) {
 		return true;
 	} 
 	
