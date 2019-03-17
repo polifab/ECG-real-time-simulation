@@ -9,13 +9,18 @@
 
 #define 	N 			2
 #define 	M 			360
+#define 	K			240
 #define		L			120
-#define		n 			10
-#define 	q			5
+#define		B 			10
+#define 	Q			5
+#define 	DIM_TEXT		48
+#define		DIM_VALUE_X		180
 #define 	SHIFT_NUMBER 		350
 #define		UPDATE_D1		35
 #define 	PICK_VALUE		0.96
+#define 	SECOND_FOR_MINUTE	60
 #define 	SAMPLING_TIME		0.008
+#define 	SPACE			22
 
 // TASKS IDENTIFIER MACRO
 
@@ -25,17 +30,27 @@
 #define		INFO_TASK		3
 #define		ANOM_TASK		4
 
+// TASKS PERIOD MACRO
+
+#define		DRAW_PERIOD		82
+#define		GENR_PERIOD		82
+#define		USER_PERIOD		100
+#define		INFO_PERIOD		200
+#define		ANOM_PERIOD		400
+
 // LIMIT DETECTOR MACRO
 
 #define		FIBRIL_LIMIT		7
 #define 	ARRHYT_LIMIT		3
+#define 	BPM_LIMIT		250
+#define		FIBRIL_JUMP		0.25
 
 // CODE FOR SAVING ANOMALY
 
-#define 	FIBRILLATION_CODE	50
-#define 	ARRHYTMIA_CODE 		60
-#define 	TACHYCARDIA_CODE 	70
-#define 	BRADYCARDIA_CODE 	80
+#define 	FIBRILLATION_CODE	65
+#define 	ARRHYTMIA_CODE 		75
+#define 	TACHYCARDIA_CODE 	85
+#define 	BRADYCARDIA_CODE 	95
 
 // ************* GLOBAL VARIABLES *****************
 
@@ -64,14 +79,14 @@ float		anomaly_note[N][M];		//variabile in cui vengono salvate le anomalie per l
 
 //	gruppo di variabili per l'esecuzione dei calcoli		
 
-int 		picchi[n];				
+int 		picchi[B];				
 int 		bpm;
 int 		arrhyt_count 	= 	 0;
 int 		read_count 	=	 0;
 int 		bpm_counter 	= 	 0;
-int		fibrill_vect[n];
-int 		arrhyt_vect[q];
-int 		bpm_save[q];
+int		fibrill_vect[B];
+int 		arrhyt_vect[Q];
+int 		bpm_save[Q];
 int 		count_time 	= 	 0;
 float		moment;
 int 		anomaly_count 	= 	 0;
@@ -126,11 +141,11 @@ int main(void)
 
 	// tasks creation
 
-	task_create(draw_function, DRAW_TASK, 82, 500, 20);
-	task_create(generatore, GENR_TASK, 82, 500, 20);
-	task_create(user_command, USER_TASK, 100, 80, 20);
-	task_create(info, INFO_TASK, 200, 300, 20);
-	task_create(anomaly_detector, ANOM_TASK, 400, 300, 20);
+	task_create(draw_function, DRAW_TASK, DRAW_PERIOD, 500, 20);
+	task_create(generatore, GENR_TASK, GENR_PERIOD, 500, 20);
+	task_create(user_command, USER_TASK, USER_PERIOD, 80, 20);
+	task_create(info, INFO_TASK, INFO_PERIOD, 300, 20);
+	task_create(anomaly_detector, ANOM_TASK, ANOM_PERIOD, 300, 20);
 
 	// tasks joining
 
@@ -276,7 +291,7 @@ int 	counter	= 0;
 			simulation_notice();
 			
 			//ogni campione vale 0.008 s
-			moment = count_time * SAMPLING_TIME * n;
+			moment = count_time * SAMPLING_TIME * B;
 			//conservo la anomalia riscontrata al tempo corrente
 			anomaly_save(moment);
 			
@@ -348,8 +363,8 @@ void init_mutex()
 bool init()
 {
 
-char 	text[24];
-char 	value_x[180];
+char 	text[DIM_TEXT];
+char 	value_x[DIM_VALUE_X];
 
 	//init_mutex();
 	srand(time(NULL));
@@ -403,21 +418,21 @@ bool carica_matrice()
 		for(i = 0; i < L; i++){
 			fscanf(fp, "%e,", &DATI[0][i]);
 			//printf("%e\n", DATI[0][i]);
-			if (i < 10) {
-				vettore[i] = 0.1;
-				vettore[i+120] = 0.1;
-				vettore[i+240] = 0.1;
+			if (i < B) {
+				vettore[i]     = 0.1;
+				vettore[i + L] = 0.1;
+				vettore[i + K] = 0.1;
 			}
 			else {
-				vettore[i] = DATI[0][i];
-				vettore[i+120] = DATI[0][i];
-				vettore[i+240] = DATI[0][i];
+				vettore[i]     = DATI[0][i];
+				vettore[i + L] = DATI[0][i];
+				vettore[i + K] = DATI[0][i];
 			}
-			DATI[1][i] = vettore[i];
-			DATI[1][i+120] = vettore[i];
-			DATI[1][i+240] = vettore[i];
-			DATI[0][i+120] = DATI[1][i];
-			DATI[0][i+240] = DATI[1][i];
+			DATI[1][i]     = vettore[i];
+			DATI[1][i + L] = vettore[i];
+			DATI[1][i + K] = vettore[i];
+			DATI[0][i + L] = DATI[1][i];
+			DATI[0][i + K] = DATI[1][i];
 		}
 		
 		for (i = 0; i < L; i++) {
@@ -439,17 +454,17 @@ int draw_rect()
 	rectfill(screen, rect_coord_x1, rect_coord_y1, rect_coord_x2, rect_coord_y2, 15);
 	rect(screen, rect_coord_x1, rect_coord_y1, rect_coord_x2, rect_coord_y2, 4);
 	
-	for (int i = 0; i < 48; i++) {
+	for (int i = 0; i < DIM_TEXT; i++) {
 		if(i % 4 == 0)
-			line(screen, rect_coord_x1 + i*10, rect_coord_y1, rect_coord_x1 + i*10, rect_coord_y2, 12); // 11
+			line(screen, rect_coord_x1 + i*B, rect_coord_y1, rect_coord_x1 + i*B, rect_coord_y2, 12); // 11
 		else
-			line(screen, rect_coord_x1 + i*10, rect_coord_y1, rect_coord_x1 + i*10, rect_coord_y2, makecol(255,150,150));
+			line(screen, rect_coord_x1 + i*B, rect_coord_y1, rect_coord_x1 + i*B, rect_coord_y2, makecol(255,150,150));
 		if (i > 35)
 			continue;
 		if (i % 4 == 0)
-			line(screen, rect_coord_x1, rect_coord_y1 - i*10, rect_coord_x2, rect_coord_y1 - i*10, 12);
+			line(screen, rect_coord_x1, rect_coord_y1 - i*B, rect_coord_x2, rect_coord_y1 - i*B, 12);
 		else
-			line(screen, rect_coord_x1, rect_coord_y1 - i*10, rect_coord_x2, rect_coord_y1 - i*10, makecol(255,150,150));			
+			line(screen, rect_coord_x1, rect_coord_y1 - i*B, rect_coord_x2, rect_coord_y1 - i*B, makecol(255,150,150));			
 	}
 
 	return 0;
@@ -499,11 +514,11 @@ void sampler()
 
 int i = 0, j = 0;
 
-	for (i = 0; i < M/2; i++) {
-		samp[i]		= DATI[1][2 * i];
-		samp[i + 59]	= DATI[1][2 * i];
-		samp[i + 119]	= DATI[1][2 * i];
-		samp[i + 179]	= DATI[1][2 * i];
+	for (i = 0; i < M/N; i++) {
+		samp[i]		= DATI[1][N * i];
+		samp[i + 59]	= DATI[1][N * i];
+		samp[i + 119]	= DATI[1][N * i];
+		samp[i + 179]	= DATI[1][N * i];
 		//printf("aux(%d) = %f\n", j, aux[j]);
 	}
 }
@@ -516,13 +531,13 @@ void shift(int count)
 	for (int i = 0; i < M; i++) {
 		if (i < SHIFT_NUMBER ){
 			//printf("%.2f\n", DATI[0][i+10]);
-			DATI[0][i] = DATI[0][i + 10];
+			DATI[0][i] = DATI[0][i + B];
 		}
 		else {
 			if (tachycardia) { // FIXME
-				DATI[0][i] = samp[i - 350 + (count * 10)];
+				DATI[0][i] = samp[i - SHIFT_NUMBER + (count * B)];
 			} else {
-				DATI[0][i] = DATI[1][i - 350 + (count * 10)];
+				DATI[0][i] = DATI[1][i - SHIFT_NUMBER + (count * B)];
 			}
 		}
 	}
@@ -547,22 +562,22 @@ int 	i	=	0;
 		//printf("[COUNT %d]\n", count);
 		for (i = 0; i < L; i++) {
 			if (fibrillation) 
-				casuale = rand()%10; 
+				casuale = rand()%B; 
 			else
 				casuale = 0;
 
-			DATI[1][i]				=	 vettore[i] + (casuale/(rand()%100 + 10));
-			DATI[1][i + 120]			=	 vettore[i] + (casuale/(rand()%150 + 10));
-			DATI[1][i + 240]			= 	 vettore[i] + (casuale/(rand()%50 + 10));
+			DATI[1][i]				=	 vettore[i] + (casuale/(rand()%100 + B));
+			DATI[1][i + L]				=	 vettore[i] + (casuale/(rand()%150 + B));
+			DATI[1][i + K]			= 	 vettore[i] + (casuale/(rand()%50 + B));
 
 		}
 		if (arrhythmia) {
 
 			for (i = 25; i < 46; i++) {
-					value 				= 	0.1 + (rand()%10)/100.0;
+					value 				= 	0.1 + (rand()%B)/100.0;
 					DATI[1][i] 	 		= 	value; 
-					DATI[1][i + 120] 		= 	value; 
-					DATI[1][i + 240] 		= 	value; 			
+					DATI[1][i + L]	 		= 	value; 
+					DATI[1][i + K]	 		= 	value; 			
 			}
 			index_arr	=	(rand()*11)%70;
 			value		=	0.9;
@@ -574,20 +589,20 @@ int 	i	=	0;
 
 			index_arr	=	(rand()*34)%70;
 
-			DATI[1][index_arr + 120 + 30]		=	DATI[1][index_arr + 120 + 49] + 0.15;
-			DATI[1][index_arr + 120 + 31]		=	DATI[1][index_arr + 120 + 50] + 0.2;
-			DATI[1][index_arr + 120 + 32]		=	DATI[1][index_arr + 120 + 51] + 0.15;
+			DATI[1][index_arr + L + 30]		=	DATI[1][index_arr + L + 49] + 0.15;
+			DATI[1][index_arr + L + 31]		=	DATI[1][index_arr + L + 50] + 0.2;
+			DATI[1][index_arr + L + 32]		=	DATI[1][index_arr + L + 51] + 0.15;
 
-			DATI[1][index_arr + 120 + 15]		=	DATI[1][index_arr + 120 + 60] + value;
+			DATI[1][index_arr + L + 15]		=	DATI[1][index_arr + L + 60] + value;
 
 			index_arr	=	(rand()*27)%70;
 
-			DATI[1][index_arr + 240 + 30]		=	DATI[1][index_arr + 240 + 49] + 0.15;
-			DATI[1][index_arr + 240 + 31]		=	DATI[1][index_arr + 240 + 49] + 0.2;
-			DATI[1][index_arr + 240 + 32]		=	DATI[1][index_arr + 240 + 49] + 0.15;
+			DATI[1][index_arr + K + 30]		=	DATI[1][index_arr + K + 49] + 0.15;
+			DATI[1][index_arr + K + 31]		=	DATI[1][index_arr + K + 49] + 0.2;
+			DATI[1][index_arr + K + 32]		=	DATI[1][index_arr + K + 49] + 0.15;
 
 			
-			DATI[1][index_arr + 240 + 15]		=	DATI[1][index_arr + 240] + value;	
+			DATI[1][index_arr + K + 15]		=	DATI[1][index_arr + K] + value;	
 
 		}
 		if (tachycardia) {
@@ -609,7 +624,7 @@ int 	n_picchi 	= 	0;
 int 	distanza_p, i;
 int 	bpm_col;
 float 	distanza_t; //distanza temporale
-char 	text[q];
+char 	text[Q];
 	
 
 	if (counter > 1) {
@@ -623,14 +638,14 @@ char 	text[q];
 			}
 		pthread_mutex_unlock(&mutex);
 		//calcolo la distanza di campioni tra gli ultimi due picchi, ogni campione corrisponde a 0,0141 secondi
-		distanza_p = picchi[n_picchi - 1] - picchi[n_picchi - 2];
+		distanza_p = picchi[n_picchi - 1] - picchi[n_picchi - N];
 		distanza_t = distanza_p * SAMPLING_TIME;
 		//printf("DISTANZA T = %f\n", distanza_t);
-		bpm = floor(60/distanza_t);
+		bpm = floor(SECOND_FOR_MINUTE/distanza_t);
 
 		//printf("BPM: %d\n", bpm);
 		
-		if (bpm < 250 && bpm > 0) {
+		if (bpm < BPM_LIMIT && bpm > 0) {
 
 			rectfill(screen, rect_coord_x1-90, rect_coord_y2-4, rect_coord_x1, rect_coord_y2+8, 0); //cancello il precedente valore BPM	
 
@@ -684,11 +699,11 @@ int 	i 		=	 0;
 int 	arrhyt_sum 	=	 0;
 
 
-	if (bpm_counter < q) {
+	if (bpm_counter < Q) {
 		pthread_mutex_lock(&mutex);
 
-		if (bpm > bpm_save[bpm_counter - 1] + n/2 || bpm < bpm_save[bpm_counter - 1] - n/2) {
-			if (bpm < 250 && bpm > 0) {
+		if (bpm > bpm_save[bpm_counter - 1] + B/N || bpm < bpm_save[bpm_counter - 1] - B/N) {
+			if (bpm < BPM_LIMIT && bpm > 0) {
 				bpm_save[bpm_counter] = beat;
 				bpm_counter++;
 				arrhyt_count = 0;
@@ -696,8 +711,8 @@ int 	arrhyt_sum 	=	 0;
 		}
 		
 
-		if (arrhyt_count >= q) {
-			for (i = 0; i < q; i++) {
+		if (arrhyt_count >= Q) {
+			for (i = 0; i < Q; i++) {
 				arrhyt_vect[i] = 0;
 			}
 		}
@@ -708,7 +723,7 @@ int 	arrhyt_sum 	=	 0;
 	else {
 		i = 0;
 		while (bpm_save[i] > 0) {
-			if (bpm_save[i + 1] > bpm_save[i] + n*2 || bpm_save[i + 1] < bpm_save[i] - n*2) {
+			if (bpm_save[i + 1] > bpm_save[i] + B*N || bpm_save[i + 1] < bpm_save[i] - B*N) {
 				arrhyt_vect[i] = 1;
 			}
 			else {
@@ -721,7 +736,7 @@ int 	arrhyt_sum 	=	 0;
 	}
 
 	
-	for (i = 0; i < q; i++) {
+	for (i = 0; i < Q; i++) {
 		arrhyt_sum += arrhyt_vect[i];
 	}
 	
@@ -747,16 +762,16 @@ bool fibrillation_detector()
 int 	i 	=    0;
 int 	sum	=    0;
 
-	for (i = M - n; i < M ; i++) {
-		if (DATI[0][i] > (DATI[0][i-1] + 0.25) || DATI[0][i] < (DATI[0][i-1] - 0.25)) {
-			fibrill_vect[i - M + n] = 1;
+	for (i = M - B; i < M ; i++) {
+		if (DATI[0][i] > (DATI[0][i-1] + FIBRIL_JUMP) || DATI[0][i] < (DATI[0][i-1] - FIBRIL_JUMP)) {
+			fibrill_vect[i - M + B] = 1;
 		}
 		else {
-			fibrill_vect[i - M + n] = 0;
+			fibrill_vect[i - M + B] = 0;
 		}
 	}
 	
-	for (i = 0; i < n; i++) {
+	for (i = 0; i < B; i++) {
 		sum += fibrill_vect[i];
 	}
 
@@ -774,31 +789,31 @@ void warnings()
 {
 	
 int 	i = 0;
-char 	text[48];
+char 	text[DIM_TEXT];
 	
 	rectfill(screen, rect_coord_x2 + 65, rect_coord_y2 + 3, rect_coord_x2 + 295, rect_coord_y2 + 355, 15);
 	
 	if (anomaly_tachy) {
 		sprintf(text, "High heartbeat, tachycardia");
-		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * 22), 1, -1);
+		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * SPACE), 1, -1);
 		i++;
 	}
 	else if (anomaly_brady) {
 		sprintf(text, "Slow heartbeat, bradycardia");
-		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * 22), 1, -1);
+		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * SPACE), 1, -1);
 		i++;	
 	}
 	
 	if (anomaly_arrhyt) {
 		sprintf(text, "Irregular beat, arrhythmia");
-		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * 22), 1, -1);
+		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * SPACE), 1, -1);
 		i++;
 	}
 	
 
 	if (anomaly_fibril) {
 		sprintf(text, "Risk of fibrillation");
-		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * 22), 1, -1);
+		textout_centre_ex(screen, font, text, rect_coord_x2 + 182, rect_coord_y2 + 12 + (i * SPACE), 1, -1);
 		i++;
 	}
 
@@ -810,26 +825,26 @@ void simulation_notice()
 {
 
 int 	i = 0;
-char 	text[48];
+char 	text[DIM_TEXT];
 	
 	
 	rectfill(screen, rect_coord_x1, rect_coord_y2 - 100, rect_coord_x1 + 500, rect_coord_y2 - 30, 0);
 	
 	if (tachycardia) {
 		sprintf(text, "Tachycardia simulation in progress");
-		textout_centre_ex(screen, font, text, rect_coord_x1 + 320, rect_coord_y2 - 100 + (i * 22), 2, -1);
+		textout_centre_ex(screen, font, text, rect_coord_x1 + 320, rect_coord_y2 - 100 + (i * SPACE), 2, -1);
 		i++;
 	}	
 	
 	if (arrhythmia) {
 		sprintf(text, "Arrhythmia simulation in progress");
-		textout_centre_ex(screen, font, text, rect_coord_x1 + 320, rect_coord_y2 - 100 + (i * 22), 2, -1);
+		textout_centre_ex(screen, font, text, rect_coord_x1 + 320, rect_coord_y2 - 100 + (i * SPACE), 2, -1);
 		i++;
 	}
 	
 	if (fibrillation) {
 		sprintf(text, "Fibrillation simulation in progress");
-		textout_centre_ex(screen, font, text, rect_coord_x1 + 320, rect_coord_y2 - 100 + (i * 22), 2, -1);
+		textout_centre_ex(screen, font, text, rect_coord_x1 + 320, rect_coord_y2 - 100 + (i * SPACE), 2, -1);
 		i++;
 	}
 	
@@ -839,7 +854,6 @@ char 	text[48];
 
 void anomaly_save(float moment)
 {
-
 	
 	if (anomaly_tachy) {
 		anomaly_note[0][anomaly_count] = TACHYCARDIA_CODE;
@@ -865,7 +879,6 @@ void anomaly_save(float moment)
 		anomaly_count++;
 	}
 
-
 }
 
 //--------------------------------------
@@ -873,7 +886,8 @@ void anomaly_save(float moment)
 bool write_anomaly()
 {
 
-int 	i = 0;
+int 	i 	=     0;
+
 
 
 	fw = fopen("ECG_report.txt", "w");
@@ -902,9 +916,7 @@ int 	i = 0;
 		i++;
 	}
 
-
 	fclose(fw);
-
 
 }
 
