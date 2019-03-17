@@ -13,6 +13,7 @@
 #define		L			120
 #define		B 			10
 #define 	Q			5
+#define 	W			4000
 #define 	DIM_TEXT		48
 #define		DIM_VALUE_X		180
 #define 	SHIFT_NUMBER 		350
@@ -75,7 +76,10 @@ float		aux_draw[M];
 float		samp[M];
 float		buff_arr[L];
 float		arr[M];
-float		anomaly_note[N][M];		//variabile in cui vengono salvate le anomalie per la successiva scrittura su file
+int		anomaly_note_tachy [N][W];
+int		anomaly_note_brady [N][W];
+int		anomaly_note_arrhyt[N][W];
+int		anomaly_note_fibril[N][W];		//variabili in cui vengono salvate le anomalie per la successiva scrittura su file
 
 //	gruppo di variabili per l'esecuzione dei calcoli		
 
@@ -87,9 +91,15 @@ int 		bpm_counter 	= 	 0;
 int		fibrill_vect[B];
 int 		arrhyt_vect[Q];
 int 		bpm_save[Q];
-int 		count_time 	= 	 0;
+
+//	gruppo di variabili per la scrittura su file
+
 float		moment;
-int 		anomaly_count 	= 	 0;
+int 		count_time 	= 	 0;
+int 		tachy_c         = 	 0;
+int 		brady_c 	= 	 0;
+int 		arrhyt_c 	= 	 0; 		
+int 		fibril_c 	= 	 0;
 
 //	mutex
 
@@ -223,7 +233,8 @@ int 	count = 0;
 void * draw_function()
 {
 
-int i;
+int 	i;
+char 	text[DIM_TEXT];
 
 	set_activation(DRAW_TASK);
 
@@ -239,6 +250,12 @@ int i;
 				aux_draw[i] = DATI[0][i];
 				//printf("%.2f     %.2f\n", aux_draw[i], DATI[0][i]);
 			}
+			
+			rectfill(screen, rect_coord_x2 + 220, rect_coord_y2 + 430, rect_coord_x2 + 300, rect_coord_y2 + 455, 0);
+			sprintf(text, "TIME: %f", moment);
+			textout_centre_ex(screen, font, text, rect_coord_x2 + 270, rect_coord_y2 + 440, 7, -1);
+			rectfill(screen, rect_coord_x2 + 293, rect_coord_y2 + 430, rect_coord_x2 + 330, rect_coord_y2 + 455, 0);
+			
 			pthread_mutex_unlock(&mutex);
 			//printf("[DRAW] MUTEX UNLOCKED\n");
 
@@ -258,7 +275,7 @@ int i;
 
 			}*/
 
-			for(i = 0; i < M; i++){
+			for(i = 0; i < M; i++) {
 				line(screen, rect_coord_x1 + 1.5*i, 340 - (int)(140*aux_draw[i]), rect_coord_x1 + 1.5*i + 1.5, 340 - (int)(140*aux_draw[i+1]),  makecol(0, 0, 0));
 			}
 
@@ -856,27 +873,27 @@ void anomaly_save(float moment)
 {
 	
 	if (anomaly_tachy) {
-		anomaly_note[0][anomaly_count] = TACHYCARDIA_CODE;
-		anomaly_note[1][anomaly_count] = moment;
-		anomaly_count++;
+		anomaly_note_tachy[0][tachy_c] = TACHYCARDIA_CODE;
+		anomaly_note_tachy[1][tachy_c] = floor(moment);
+		tachy_c++;
 	}
 	
 	if (anomaly_brady) {
-		anomaly_note[0][anomaly_count] = BRADYCARDIA_CODE;
-		anomaly_note[1][anomaly_count] = moment;
-		anomaly_count++;
+		anomaly_note_brady[0][brady_c] = BRADYCARDIA_CODE;
+		anomaly_note_brady[1][brady_c] = floor(moment);
+		brady_c++;
 	}
 
 	if (anomaly_arrhyt) {
-		anomaly_note[0][anomaly_count] = ARRHYTMIA_CODE;
-		anomaly_note[1][anomaly_count] = moment;
-		anomaly_count++;
+		anomaly_note_arrhyt[0][arrhyt_c] = ARRHYTMIA_CODE;
+		anomaly_note_arrhyt[1][arrhyt_c] = floor(moment);
+		arrhyt_c++;
 	}
 
 	if (anomaly_fibril) {
-		anomaly_note[0][anomaly_count] = FIBRILLATION_CODE;
-		anomaly_note[1][anomaly_count] = moment;
-		anomaly_count++;
+		anomaly_note_fibril[0][fibril_c] = FIBRILLATION_CODE;
+		anomaly_note_fibril[1][fibril_c] = floor(moment);
+		fibril_c++;
 	}
 
 }
@@ -887,7 +904,7 @@ bool write_anomaly()
 {
 
 int 	i 	=     0;
-
+int 	j;
 
 
 	fw = fopen("ECG_report.txt", "w");
@@ -895,26 +912,72 @@ int 	i 	=     0;
 		return false;
 	}
 
-	while (anomaly_note[0][i] > 0){
-	
-		if (anomaly_note[0][i] == TACHYCARDIA_CODE) {
-			fprintf(fw, "Tachicardia rilevata al tempo %f\n\n", anomaly_note[1][i]);
-		}
-		
-		if (anomaly_note[0][i] == BRADYCARDIA_CODE) {
-			fprintf(fw, "Bradicardia rilevata al tempo %f\n\n", anomaly_note[1][i]);
+
+
+	i = 0;
+	while (anomaly_note_tachy[0][i] > 0) {
+
+		j = i;
+		while (anomaly_note_tachy[1][j] == anomaly_note_tachy[1][j+1] || anomaly_note_tachy[1][j] + 1 == anomaly_note_tachy[1][j+1]) {
+			j++;	
 		}
 
-		if (anomaly_note[0][i] == ARRHYTMIA_CODE) {
-			fprintf(fw, "Aritmia rilevata al tempo %f\n\n", anomaly_note[1][i]);
-		}
-		
-		if (anomaly_note[0][i] == FIBRILLATION_CODE) {
-			fprintf(fw, "Fibrillazione rilevata al tempo %f\n\n", anomaly_note[1][i]);
+		if(i != j){	
+			fprintf(fw, "Tachicardia rilevata tra %d e %d secondi\n\n", anomaly_note_tachy[1][i], anomaly_note_tachy[1][j]); 
 		}
 
-		i++;
+		i = j + 1;
 	}
+
+
+
+	i = 0;
+	while (anomaly_note_brady[0][i] > 0) {
+
+		j = i;
+		while (anomaly_note_brady[1][j] == anomaly_note_brady[1][j+1] || anomaly_note_brady[1][j] + 1 == anomaly_note_brady[1][j+1]) {
+			j++;
+		}
+
+		if (i != j) {	
+			fprintf(fw, "Braducardia rilevata tra %d e %d secondi\n\n", anomaly_note_brady[1][i], anomaly_note_brady[1][j]); 
+		}
+
+		i = j + 1;
+	}
+
+
+	i = 0;
+	while (anomaly_note_arrhyt[0][i] > 0) {
+
+		j = i;
+		while (anomaly_note_arrhyt[1][j] == anomaly_note_arrhyt[1][j+1] || anomaly_note_arrhyt[1][j] + 1 == anomaly_note_arrhyt[1][j+1]) {
+			j++;
+		}
+
+		if (i != j) {	
+			fprintf(fw, "Aritmia rilevata tra %d e %d secondi\n", anomaly_note_arrhyt[1][i], anomaly_note_arrhyt[1][j]); 
+		}
+
+		i = j + 1;
+	}
+
+
+	i = 0;
+	while (anomaly_note_fibril[0][i] > 0) {
+
+		j = i;
+		while (anomaly_note_fibril[1][j] == anomaly_note_fibril[1][j+1] || anomaly_note_fibril[1][j] + 1 == anomaly_note_fibril[1][j+1]) {
+			j++;
+		}
+
+		if (i != j) {	
+			fprintf(fw, "Fibrillazione rilevata tra %d e %d secondi\n", anomaly_note_fibril[1][i], anomaly_note_fibril[1][j]); 
+		}
+
+		i = j + 1;
+	}
+
 
 	fclose(fw);
 
