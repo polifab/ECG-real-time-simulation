@@ -7,21 +7,21 @@
 #include 	"task.h"
 
 
-#define 	N 					2
-#define 	M 					360
-#define 	K					240
-#define		L					120
-#define		B 					10
-#define 	Q					5
-#define 	W					4000
-#define 	DIM_TEXT			48
-#define		DIM_VALUE_X			180
+#define 	N 			2
+#define 	M 			360
+#define 	K			240
+#define		L			120
+#define		B			10
+#define 	Q			5
+#define 	W			4000
+#define 	DIM_TEXT		48
+#define		DIM_VALUE_X		180
 #define 	SHIFT_NUMBER 		350
-#define		UPDATE_D1			35
-#define 	PICK_VALUE			0.96
+#define		UPDATE_D1		35
+#define 	PICK_VALUE		0.96
 #define 	SECOND_FOR_MINUTE	60
 #define 	SAMPLING_TIME		0.008
-#define 	SPACE				22
+#define 	SPACE			22
 
 // TASKS IDENTIFIER MACRO
 
@@ -29,7 +29,7 @@
 #define		GENR_TASK		1
 #define		USER_TASK		2
 #define		INFO_TASK		3
-#define		ANOM_TASK		4
+#define		TACH_TASK		4
 #define		ARRH_TASK		5	
 #define		FIBR_TASK		6
 
@@ -39,7 +39,7 @@
 #define		GENR_PERIOD		82
 #define		USER_PERIOD		100
 #define		INFO_PERIOD		200
-#define		ANOM_PERIOD		400
+#define		TACH_PERIOD		300
 #define		ARRH_PERIOD		300
 #define		FIBR_PERIOD		300		
 
@@ -125,10 +125,10 @@ void	*	draw_function();		//	task dedito ad aggiornare la grafica (consumatore)
 void	*	user_command();			//	task dedito alla lettura dei comandi dell'utente
 void 	* 	generatore();			//	task dedito alla generazione dei valori dell'ecg (produttore)
 void	* 	info();				//	task dedito ai calcoli relativi l'analisi dell'ecg
-void	* 	anomaly_detector(); 		// 	task dedito alla rilevazione di anomalie del ritmo sinusale
-void 	*	write_report(); 		//	task dedito alla scrittura su file delle anomalie riscontrate
+void	* 	tachycardia_detector(); 		// 	task dedito alla rilevazione di anomalie del ritmo sinusale
 void	*	arrhythmia_detector(); 	// task per la rilevazione dell'aritmia
 void	*	fibrillation_detector(); 	// task per la rilevazione della fibrillazione
+void 	*	write_report(); 		//	task dedito alla scrittura su file delle anomalie riscontrate
 
 // ************* FUNCTION PROTOTYPES **********************
 
@@ -161,7 +161,7 @@ int main(void)
 	task_create(generatore,			GENR_TASK,	GENR_PERIOD,	500,	19);
 	task_create(user_command,		USER_TASK,	USER_PERIOD, 	 80,	20);
 	task_create(info,			INFO_TASK,	INFO_PERIOD,	300,	20);
-	task_create(anomaly_detector,		ANOM_TASK,	ANOM_PERIOD,	300,	20);
+	task_create(tachycardia_detector,	TACH_TASK,	TACH_PERIOD,	300,	20);
 	task_create(arrhythmia_detector,	ARRH_TASK,	ARRH_PERIOD,	300,	20);
 	task_create(fibrillation_detector,	FIBR_TASK,	FIBR_PERIOD,	300,	20);
 	// tasks joining
@@ -174,8 +174,8 @@ int main(void)
 	printf("USER TASK\n");
 	pthread_join(tid[INFO_TASK],NULL);
 	printf("INFO TASK\n");
-	pthread_join(tid[ANOM_TASK],NULL);
-	printf("ANOMALY DETECTOR TASK\n");
+	pthread_join(tid[TACH_TASK],NULL);
+	printf("TACHYCARDIA DETECTOR TASK\n");
 	pthread_join(tid[ARRH_TASK],NULL);
 	printf("ARRHYTMIA DETECTOR TASK\n");
 	pthread_join(tid[FIBR_TASK],NULL);
@@ -262,7 +262,7 @@ char 	text[DIM_TEXT];
 				//printf("%.2f     %.2f\n", aux_draw[i], DATI[0][i]);
 			}
 			
-			rectfill(screen, rect_coord_x2 + 220, rect_coord_y2 + 430, rect_coord_x2 + 300, rect_coord_y2 + 455, 0);
+			rectfill(screen, rect_coord_x2 + 220, rect_coord_y2 + 430, rect_coord_x2 + 320, rect_coord_y2 + 455, 0);
 			sprintf(text, "TIME: %.2f", moment);
 			textout_centre_ex(screen, font, text, rect_coord_x2 + 270, rect_coord_y2 + 440, 7, -1);
 			
@@ -317,17 +317,17 @@ int 	counter	= 0;
 
 //-------------------------------------------------------
 
-void * anomaly_detector()
+void * tachycardia_detector()
 {
 
-	set_activation(ANOM_TASK);
+	set_activation(TACH_TASK);
 
 	while (quit == false) {
 
 		if (tachy_det_activation == false) {
 			if (anomaly_tachy == true)
 				anomaly_tachy = false;
-			wait_for_activation(ANOM_TASK);
+			wait_for_activation(TACH_TASK);
 
 			continue;
 
@@ -347,7 +347,7 @@ void * anomaly_detector()
 		}
 
 
-		wait_for_activation(ANOM_TASK);
+		wait_for_activation(TACH_TASK);
 	}	
 	
 	
@@ -521,6 +521,8 @@ char 	value_x[DIM_VALUE_X];
 
 	draw_rect();
 	
+	sprintf(value_x, "Press 's' to start/stop the graphics");
+	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 15, 15, -1);
 	sprintf(text, "ECG");
 	textout_centre_ex(screen, font, text, 460, 20, 10, -1);
 	sprintf(text, "Press 'q' to exit");
@@ -627,6 +629,7 @@ void read_command(char key)
 
 		case 't':
 			tachycardia		=	!tachycardia;
+			break;
 
 		case 'd':
 			arr_det_activation	=	!arr_det_activation;
@@ -659,8 +662,6 @@ int	tachy_color_sim,  arrhyt_color_sim,  fibril_color_sim;
 int 	tachy_color_dect, arrhyt_color_dect, fibril_color_dect;
 
 
-	sprintf(value_x, "Press 's' to start/stop the graphics");
-	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 15, 15, -1);
 
 	if (tachycardia)	 tachy_color_sim = 10;
 	else 			 tachy_color_sim = 15; 
