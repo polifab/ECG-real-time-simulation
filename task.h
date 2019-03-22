@@ -2,6 +2,8 @@
 #include <pthread.h>
 #include <stdio.h>
 
+#define NT	7
+
 struct task_par {
     int     arg;
     long    wcet;
@@ -18,9 +20,9 @@ struct timespec     start, finish;      //Non utilizzate
 time_t              tstart,tend;
 
 struct sched_param	mypar;
-struct task_par		tp[5];
-pthread_attr_t		att[5];
-pthread_t		tid[5];
+struct task_par		tp[NT];
+pthread_attr_t		att[NT];
+pthread_t		tid[NT];
 
 void time_copy(struct timespec *td, struct timespec ts);
 

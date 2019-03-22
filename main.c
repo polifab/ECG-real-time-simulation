@@ -7,21 +7,21 @@
 #include 	"task.h"
 
 
-#define 	N 			2
-#define 	M 			360
-#define 	K			240
-#define		L			120
-#define		B 			10
-#define 	Q			5
-#define 	W			4000
-#define 	DIM_TEXT		48
-#define		DIM_VALUE_X		180
+#define 	N 					2
+#define 	M 					360
+#define 	K					240
+#define		L					120
+#define		B 					10
+#define 	Q					5
+#define 	W					4000
+#define 	DIM_TEXT			48
+#define		DIM_VALUE_X			180
 #define 	SHIFT_NUMBER 		350
-#define		UPDATE_D1		35
-#define 	PICK_VALUE		0.96
+#define		UPDATE_D1			35
+#define 	PICK_VALUE			0.96
 #define 	SECOND_FOR_MINUTE	60
 #define 	SAMPLING_TIME		0.008
-#define 	SPACE			22
+#define 	SPACE				22
 
 // TASKS IDENTIFIER MACRO
 
@@ -31,6 +31,7 @@
 #define		INFO_TASK		3
 #define		ANOM_TASK		4
 #define		ARRH_TASK		5	
+#define		FIBR_TASK		6
 
 // TASKS PERIOD MACRO
 
@@ -40,13 +41,14 @@
 #define		INFO_PERIOD		200
 #define		ANOM_PERIOD		400
 #define		ARRH_PERIOD		300
+#define		FIBR_PERIOD		300		
 
 // LIMIT DETECTOR MACRO
 
 #define		FIBRIL_LIMIT		7
 #define 	ARRHYT_LIMIT		3
-#define 	BPM_LIMIT		250
-#define		FIBRIL_JUMP		0.25
+#define 	BPM_LIMIT			250
+#define		FIBRIL_JUMP			0.25
 
 // CODE FOR SAVING ANOMALY
 
@@ -67,6 +69,7 @@ bool		anomaly_tachy		=	false;
 bool		anomaly_brady		=	false;
 bool		anomaly_arrhyt		=	false;
 bool		arr_det_activation	=	false;
+bool		fibr_det_activation	=	false;
 
 //	gruppo di variabili necessarie per la lettura/scrittura dei dati dai file
 
@@ -88,12 +91,12 @@ int		anomaly_note_fibril[N][W];		//variabili in cui vengono salvate le anomalie 
 
 int 		picchi[B];				
 int 		bpm;
-int 		arrhyt_count 	= 	 0;
+
 int 		read_count 	=	 0;
-int 		bpm_counter 	= 	 0;
+
 int		fibrill_vect[B];
-int 		arrhyt_vect[Q];
-int 		bpm_save[Q];
+
+
 
 //	gruppo di variabili per la scrittura su file
 
@@ -124,7 +127,8 @@ void 	* 	generatore();			//	task dedito alla generazione dei valori dell'ecg (pr
 void	* 	info();				//	task dedito ai calcoli relativi l'analisi dell'ecg
 void	* 	anomaly_detector(); 		// 	task dedito alla rilevazione di anomalie del ritmo sinusale
 void 	*	write_report(); 		//	task dedito alla scrittura su file delle anomalie riscontrate
-void	*	arrhythmia_detector(); 	//funzione per la rilevazione dell'aritmia
+void	*	arrhythmia_detector(); 	// task per la rilevazione dell'aritmia
+void	*	fibrillation_detector(); 	// task per la rilevazione della fibrillazione
 
 // ************* FUNCTION PROTOTYPES **********************
 
@@ -140,7 +144,7 @@ int		update_D1(int count);
 int 		bpm_calculation(int counter); 	//funzione per il calcolo dei bpm
 void 		simulation_notice();		  
 void 		warnings();
-bool		fibrillation_detector(); 	//funzione per la rilevazione della fibrillazione
+
 void		anomaly_save(float time_);	
 bool		write_anomaly();		//funzione per la scrittura su file
 
@@ -154,12 +158,13 @@ int main(void)
 
 	// tasks creation
 
-	task_create(draw_function,			DRAW_TASK,	DRAW_PERIOD,	500,	20);
-	task_create(generatore,				GENR_TASK,	GENR_PERIOD,	500,	20);
+	task_create(draw_function,			DRAW_TASK,	DRAW_PERIOD,	500,	19);
+	task_create(generatore,				GENR_TASK,	GENR_PERIOD,	500,	19);
 	task_create(user_command,			USER_TASK,	USER_PERIOD, 	 80,	20);
 	task_create(info,					INFO_TASK,	INFO_PERIOD,	300,	20);
 	task_create(anomaly_detector,		ANOM_TASK,	ANOM_PERIOD,	300,	20);
 	task_create(arrhythmia_detector,	ARRH_TASK,	ARRH_PERIOD,	300,	20);
+	task_create(fibrillation_detector,	FIBR_TASK,	FIBR_PERIOD,	300,	20);
 	// tasks joining
 
 	pthread_join(tid[DRAW_TASK],NULL);
@@ -174,6 +179,8 @@ int main(void)
 	printf("ANOMALY DETECTOR TASK\n");
 	pthread_join(tid[ARRH_TASK],NULL);
 	printf("ARRHYTMIA DETECTOR TASK\n");
+	pthread_join(tid[FIBR_TASK],NULL);
+	printf("FIBRILLATION DETECTOR TASK\n");
 
 	write_anomaly();
 
@@ -298,7 +305,7 @@ int 	counter	= 0;
 			//ogni campione vale 0.008 s
 			moment = count_time * SAMPLING_TIME * B;
 			//conservo la anomalia riscontrata al tempo corrente
-			anomaly_save(moment);
+			//anomaly_save(moment);
 			
 			//pthread_mutex_unlock(&mutex);
 			wait_for_activation(INFO_TASK);
@@ -332,12 +339,6 @@ void * anomaly_detector()
 				anomaly_brady = false;
 			}
 
-			if (fibrillation_detector()) {
-				anomaly_fibril = true;
-			} else {
-				anomaly_fibril = false;
-			}
-
 			warnings();
 
 			wait_for_activation(ANOM_TASK);
@@ -352,8 +353,12 @@ void * arrhythmia_detector()
 
 {
 
-int 	i 		=	 0;
-int 	arrhyt_sum 	=	 0;
+int 		bpm_save[Q];
+int 		arrhyt_vect[Q];
+int 		i	 			=	 0;
+int 		arrhyt_sum 		=	 0;
+int 		bpm_counter 	= 	 0;
+int 		arrhyt_count 	= 	 0;
 
 	set_activation(ARRH_TASK);
 
@@ -362,8 +367,8 @@ int 	arrhyt_sum 	=	 0;
 		if(arr_det_activation == false){
 			if(anomaly_arrhyt == true)
 				anomaly_arrhyt = false;
-			
 			wait_for_activation(ARRH_TASK);
+
 			continue;
 		}
 
@@ -386,7 +391,6 @@ int 	arrhyt_sum 	=	 0;
 			}
 			pthread_mutex_unlock(&mutex);	
 		} 
-		
 			
 		else {
 			i = 0;
@@ -402,22 +406,20 @@ int 	arrhyt_sum 	=	 0;
 		
 			bpm_counter = 0;
 		}
-
 		
 		for (i = 0; i < Q; i++) {
 			arrhyt_sum += arrhyt_vect[i];
 		}
 		
-		
 		//printf("arrhyt_sum: %d\n", arrhyt_sum); 
 		if (arrhyt_sum >= ARRHYT_LIMIT) {
 			arrhyt_sum = 0;
+
 			anomaly_arrhyt = true;
 		}
-
-		
 		else {	
 			arrhyt_sum = 0;
+
 			anomaly_arrhyt = false;
 		}
 
@@ -427,6 +429,55 @@ int 	arrhyt_sum 	=	 0;
 
 	}
 }
+
+
+void * fibrillation_detector()
+{
+
+int 	i 	=    0;
+int 	sum	=    0;
+
+	set_activation(FIBR_TASK);
+
+	while(quit == false){
+
+		if(fibr_det_activation == false){
+			if(anomaly_fibril == true)
+				anomaly_fibril = false;
+			wait_for_activation(FIBR_TASK);
+
+			continue;
+		}
+
+		for (i = M - B; i < M ; i++) {
+			if (DATI[0][i] > (DATI[0][i-1] + FIBRIL_JUMP) || DATI[0][i] < (DATI[0][i-1] - FIBRIL_JUMP)) {
+				fibrill_vect[i - M + B] = 1;
+			}
+			else {
+				fibrill_vect[i - M + B] = 0;
+			}
+		}
+		
+		for (i = 0; i < B; i++) {
+			sum += fibrill_vect[i];
+		}
+
+		//printf("SUM: %d\n", sum);
+		if (sum > FIBRIL_LIMIT) {
+			anomaly_fibril = true;
+		} 
+		else{
+			anomaly_fibril = false;
+		}
+		
+		if (deadline_miss(FIBR_TASK) == 1) printf("DEADLINE MISS FIBRILLATION\n");     //soft real time
+
+		wait_for_activation(FIBR_TASK);
+
+	}
+}
+
+
 
 // ********************** FUNCTIONS IMPLEMENTATION *****************************
 
@@ -578,6 +629,10 @@ void read_command(char key)
 
 		case 'd':
 			arr_det_activation	=	!arr_det_activation;
+			break;
+
+		case 'i':
+			fibr_det_activation	=	!fibr_det_activation;
 			break;
 
 		default:
@@ -775,33 +830,6 @@ float previous = 0;
 }
 
 //-----------------------------------------
-
-bool fibrillation_detector()
-{
-
-int 	i 	=    0;
-int 	sum	=    0;
-
-	for (i = M - B; i < M ; i++) {
-		if (DATI[0][i] > (DATI[0][i-1] + FIBRIL_JUMP) || DATI[0][i] < (DATI[0][i-1] - FIBRIL_JUMP)) {
-			fibrill_vect[i - M + B] = 1;
-		}
-		else {
-			fibrill_vect[i - M + B] = 0;
-		}
-	}
-	
-	for (i = 0; i < B; i++) {
-		sum += fibrill_vect[i];
-	}
-
-	//printf("SUM: %d\n", sum);
-	if (sum > FIBRIL_LIMIT) {
-		return true;
-	} 
-	
-	return false;
-}
 
 //--------------------------------------
 
