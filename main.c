@@ -59,15 +59,16 @@
 
 // ************* GLOBAL VARIABLES *****************
 
-bool		quit				=	false;	//	variabile di terminazione 
+bool		quit			=	false;	//	variabile di terminazione 
 bool		stop_graphics		=	true;	//	variabile per lo stop dei thread produttori e consumatori
 bool		fibrillation		=	false;
-bool		tachycardia			=	false;
-bool		arrhythmia			=	false;
+bool		tachycardia		=	false;
+bool		arrhythmia		=	false;
 bool		anomaly_fibril		=	false; 	//  variabili per la rilevazione delle anomalie
 bool		anomaly_tachy		=	false;
 bool		anomaly_brady		=	false;
 bool		anomaly_arrhyt		=	false;
+bool		tachy_det_activation	= 	false;
 bool		arr_det_activation	=	false;
 bool		fibr_det_activation	=	false;
 
@@ -82,21 +83,20 @@ float		aux_draw[M];
 float		samp[M];
 float		buff_arr[L];
 float		arr[M];
+
+//	gruppo di variabili per l'annotazione delle anomalie rilevate per la successiva scrittura su file
+
 int		anomaly_note_tachy [N][W];
 int		anomaly_note_brady [N][W];
 int		anomaly_note_arrhyt[N][W];
-int		anomaly_note_fibril[N][W];		//variabili in cui vengono salvate le anomalie per la successiva scrittura su file
+int		anomaly_note_fibril[N][W];		
 
 //	gruppo di variabili per l'esecuzione dei calcoli		
 
 int 		picchi[B];				
 int 		bpm;
-
 int 		read_count 	=	 0;
-
 int		fibrill_vect[B];
-
-
 
 //	gruppo di variabili per la scrittura su file
 
@@ -113,7 +113,7 @@ pthread_mutex_t 	mutex = PTHREAD_MUTEX_INITIALIZER;
 
 //	gruppo di variabili per la grafica
 
-int		x = 1024, y = 600, col = 4;
+int		x = 1024, y = 640, col = 4;
 int		rect_coord_x1 = 160; // x / 4
 int		rect_coord_x2 = 640; // 3/4 * x 
 int		rect_coord_y1 = 480;
@@ -137,14 +137,13 @@ void		init_mutex();
 bool		carica_matrice();
 int		draw_rect();			//	funzione per il disegno del rettangolo del grafico
 void		read_command(char key);		//	interprete dei comandi inseriti dall'utente
+void 		display_command();		
 void		sampler();
 int		arrhythmia_sim();
 void		shift();
 int		update_D1(int count);
-int 		bpm_calculation(int counter); 	//funzione per il calcolo dei bpm
-void 		simulation_notice();		  
+int 		bpm_calculation(int counter); 	//funzione per il calcolo dei bpm  
 void 		warnings();
-
 void		anomaly_save(float time_);	
 bool		write_anomaly();		//funzione per la scrittura su file
 
@@ -158,10 +157,10 @@ int main(void)
 
 	// tasks creation
 
-	task_create(draw_function,			DRAW_TASK,	DRAW_PERIOD,	500,	19);
-	task_create(generatore,				GENR_TASK,	GENR_PERIOD,	500,	19);
-	task_create(user_command,			USER_TASK,	USER_PERIOD, 	 80,	20);
-	task_create(info,					INFO_TASK,	INFO_PERIOD,	300,	20);
+	task_create(draw_function,		DRAW_TASK,	DRAW_PERIOD,	500,	19);
+	task_create(generatore,			GENR_TASK,	GENR_PERIOD,	500,	19);
+	task_create(user_command,		USER_TASK,	USER_PERIOD, 	 80,	20);
+	task_create(info,			INFO_TASK,	INFO_PERIOD,	300,	20);
 	task_create(anomaly_detector,		ANOM_TASK,	ANOM_PERIOD,	300,	20);
 	task_create(arrhythmia_detector,	ARRH_TASK,	ARRH_PERIOD,	300,	20);
 	task_create(fibrillation_detector,	FIBR_TASK,	FIBR_PERIOD,	300,	20);
@@ -264,10 +263,11 @@ char 	text[DIM_TEXT];
 			}
 			
 			rectfill(screen, rect_coord_x2 + 220, rect_coord_y2 + 430, rect_coord_x2 + 300, rect_coord_y2 + 455, 0);
-			sprintf(text, "TIME: %f", moment);
+			sprintf(text, "TIME: %.2f", moment);
 			textout_centre_ex(screen, font, text, rect_coord_x2 + 270, rect_coord_y2 + 440, 7, -1);
-			rectfill(screen, rect_coord_x2 + 293, rect_coord_y2 + 430, rect_coord_x2 + 330, rect_coord_y2 + 455, 0);
 			
+			display_command();			
+
 			pthread_mutex_unlock(&mutex);
 
 			for(i = 0; i < M; i++) {
@@ -300,13 +300,14 @@ int 	counter	= 0;
 			
 			counter++;
 			bpm_calculation(counter);
-			simulation_notice();
 			
 			//ogni campione vale 0.008 s
 			moment = count_time * SAMPLING_TIME * B;
 			//conservo la anomalia riscontrata al tempo corrente
 			anomaly_save(moment);
 			
+			warnings();
+
 			//pthread_mutex_unlock(&mutex);
 			wait_for_activation(INFO_TASK);
 			
@@ -323,42 +324,47 @@ void * anomaly_detector()
 
 	while (quit == false) {
 
-		if (!stop_graphics) {
-
-			
-			if (bpm >= 100) {
-				anomaly_tachy = true;
-			} else {
+		if (tachy_det_activation == false) {
+			if (anomaly_tachy == true)
 				anomaly_tachy = false;
-			} 
+			wait_for_activation(ANOM_TASK);
+
+			continue;
+
+		}
+			
+		if (bpm >= 100) {
+			anomaly_tachy = true;
+		} else {
+			anomaly_tachy = false;
+		} 
 			
 
-			if (bpm <= 50) {
-				anomaly_brady = true;
-			} else {
-				anomaly_brady = false;
-			}
+		if (bpm <= 50) {
+			anomaly_brady = true;
+		} else {
+			anomaly_brady = false;
+		}
 
-			warnings();
 
-			wait_for_activation(ANOM_TASK);
-		}	
-	}
+		wait_for_activation(ANOM_TASK);
+	}	
+	
 	
 }
 
 //----------------------------------------------
 
 void * arrhythmia_detector()
-
 {
 
-int 		bpm_save[Q];
-int 		arrhyt_vect[Q];
-int 		i	 			=	 0;
-int 		arrhyt_sum 		=	 0;
-int 		bpm_counter 	= 	 0;
-int 		arrhyt_count 	= 	 0;
+int 	bpm_save[Q];
+int 	arrhyt_vect[Q];
+int 	i	 		=	 0;
+int 	arrhyt_sum 		=	 0;
+int 	bpm_counter 		=	 0;
+int 	arrhyt_count 		= 	 0;
+
 
 	set_activation(ARRH_TASK);
 
@@ -430,6 +436,7 @@ int 		arrhyt_count 	= 	 0;
 	}
 }
 
+//----------------------------------------------
 
 void * fibrillation_detector()
 {
@@ -513,19 +520,13 @@ char 	value_x[DIM_VALUE_X];
 	clear_to_color(screen, makecol(0, 0, 0));
 
 	draw_rect();
-
+	
+	sprintf(text, "ECG");
+	textout_centre_ex(screen, font, text, 460, 20, 10, -1);
 	sprintf(text, "Press 'q' to exit");
 	textout_centre_ex(screen, font, text, 380, 100, 15, -1);
 	sprintf(text, "BPM:");
 	textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2-20, 10, -1);
-	sprintf(value_x, "Press 's' to start/stop the graphics");
-	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 15, 15, -1);
-	sprintf(value_x, "Press 'f' to start/stop fibrillation");
-	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 40, 15, -1);
-	sprintf(value_x, "Press 't' to start/stop tachycardia");
-	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 60, 15, -1);
-	sprintf(value_x, "Press 'a' to start/stop arrhythmia");
-	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 80, 15, -1);
 	sprintf(value_x, "Warnings");
 	textout_centre_ex(screen, font, value_x, rect_coord_x2+180, rect_coord_y2 -15 , 4, -1);
 
@@ -535,7 +536,7 @@ char 	value_x[DIM_VALUE_X];
 	return true;
 }
 
-//--------------------------
+//--------------------------------------
 
 bool carica_matrice()
 {
@@ -577,7 +578,7 @@ bool carica_matrice()
 	return true;
 }
 
-//-------------------------
+//--------------------------------------
 
 int draw_rect()
 {
@@ -601,7 +602,7 @@ int draw_rect()
 	return 0;
 }
 
-//-------------------------
+//---------------------------------------
 
 void read_command(char key)
 {
@@ -621,11 +622,11 @@ void read_command(char key)
 			break;
 
 		case 'a':
-			arrhythmia			=	!arrhythmia;
+			arrhythmia		=	!arrhythmia;
 			break;
 
 		case 't':
-			tachycardia			=	!tachycardia;
+			tachycardia		=	!tachycardia;
 
 		case 'd':
 			arr_det_activation	=	!arr_det_activation;
@@ -635,12 +636,69 @@ void read_command(char key)
 			fibr_det_activation	=	!fibr_det_activation;
 			break;
 
+		case 'k':
+			tachy_det_activation	=	!tachy_det_activation;
+			break;
+
 		default:
 			break;
 
 	}
 
 	return;
+}
+
+//--------------------------------------------
+
+void display_command()
+{
+
+char 	text[DIM_TEXT];
+char 	value_x[DIM_VALUE_X];
+int	tachy_color_sim,  arrhyt_color_sim,  fibril_color_sim;
+int 	tachy_color_dect, arrhyt_color_dect, fibril_color_dect;
+
+
+	sprintf(value_x, "Press 's' to start/stop the graphics");
+	textout_centre_ex(screen, font, value_x, rect_coord_x1+220, rect_coord_y1 + 15, 15, -1);
+
+	if (tachycardia)	 tachy_color_sim = 10;
+	else 			 tachy_color_sim = 15; 
+
+	if (arrhythmia)		 arrhyt_color_sim = 10;
+	else 			 arrhyt_color_sim = 15;
+ 
+	if (fibrillation)	 fibril_color_sim = 10;
+	else 			 fibril_color_sim = 15; 	
+
+
+	
+	sprintf(value_x, "Tachycardia simulation  ('t')");
+	textout_centre_ex(screen, font, value_x, rect_coord_x1+70, rect_coord_y1 + 55, tachy_color_sim, -1);
+	sprintf(value_x, "Arrhythmia simulation   ('a')");
+	textout_centre_ex(screen, font, value_x, rect_coord_x1+70, rect_coord_y1 + 75, arrhyt_color_sim, -1);
+	sprintf(value_x, "Fibrillation simulation ('f')");
+	textout_centre_ex(screen, font, value_x, rect_coord_x1+70, rect_coord_y1 + 95, fibril_color_sim, -1);
+
+
+	if (tachy_det_activation) tachy_color_dect = 10;
+	else 			  tachy_color_dect = 15; 
+
+	if (arr_det_activation)	 arrhyt_color_dect = 10;
+	else 			 arrhyt_color_dect = 15;
+ 
+	if (fibr_det_activation) fibril_color_dect = 10;
+	else 			 fibril_color_dect = 15; 	
+
+
+	sprintf(value_x, "Tachycardia detector  ('k')");
+	textout_centre_ex(screen, font, value_x, rect_coord_x1+390, rect_coord_y1 + 55, tachy_color_dect, -1);
+	sprintf(value_x, "Arrhythmia detector   ('d')");
+	textout_centre_ex(screen, font, value_x, rect_coord_x1+390, rect_coord_y1 + 75, arrhyt_color_dect, -1);
+	sprintf(value_x, "Fibrillation detector ('i')");
+	textout_centre_ex(screen, font, value_x, rect_coord_x1+390, rect_coord_y1 + 95, fibril_color_dect, -1);
+
+
 }
 
 //--------------------------------------------
@@ -831,7 +889,6 @@ float previous = 0;
 
 //-----------------------------------------
 
-//--------------------------------------
 
 void warnings()
 {
@@ -865,37 +922,6 @@ char 	text[DIM_TEXT];
 		i++;
 	}
 
-}
-
-//--------------------------------------
-
-void simulation_notice()
-{
-
-int 	i = 0;
-char 	text[DIM_TEXT];
-	
-	
-	rectfill(screen, rect_coord_x1, rect_coord_y2 - 100, rect_coord_x1 + 500, rect_coord_y2 - 30, 0);
-	
-	if (tachycardia) {
-		sprintf(text, "Tachycardia simulation in progress");
-		textout_centre_ex(screen, font, text, rect_coord_x1 + 320, rect_coord_y2 - 100 + (i * SPACE), 2, -1);
-		i++;
-	}	
-	
-	if (arrhythmia) {
-		sprintf(text, "Arrhythmia simulation in progress");
-		textout_centre_ex(screen, font, text, rect_coord_x1 + 320, rect_coord_y2 - 100 + (i * SPACE), 2, -1);
-		i++;
-	}
-	
-	if (fibrillation) {
-		sprintf(text, "Fibrillation simulation in progress");
-		textout_centre_ex(screen, font, text, rect_coord_x1 + 320, rect_coord_y2 - 100 + (i * SPACE), 2, -1);
-		i++;
-	}
-	
 }
 
 //--------------------------------------
