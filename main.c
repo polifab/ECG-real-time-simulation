@@ -305,7 +305,7 @@ int 	counter	= 0;
 			//ogni campione vale 0.008 s
 			moment = count_time * SAMPLING_TIME * B;
 			//conservo la anomalia riscontrata al tempo corrente
-			//anomaly_save(moment);
+			anomaly_save(moment);
 			
 			//pthread_mutex_unlock(&mutex);
 			wait_for_activation(INFO_TASK);
