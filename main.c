@@ -45,10 +45,12 @@
 
 // LIMIT DETECTOR MACRO
 
+#define 	BPM_INF			50
+#define 	BPM_SUP			100
 #define		FIBRIL_LIMIT		7
 #define 	ARRHYT_LIMIT		3
-#define 	BPM_LIMIT			250
-#define		FIBRIL_JUMP			0.25
+#define 	BPM_LIMIT		250
+#define		FIBRIL_JUMP		0.1
 
 // CODE FOR SAVING ANOMALY
 
@@ -333,14 +335,14 @@ void * tachycardia_detector()
 
 		}
 			
-		if (bpm >= 100) {
+		if (bpm >= BPM_SUP) {
 			anomaly_tachy = true;
 		} else {
 			anomaly_tachy = false;
 		} 
 			
 
-		if (bpm <= 50) {
+		if (bpm <= BPM_INF) {
 			anomaly_brady = true;
 		} else {
 			anomaly_brady = false;
@@ -368,10 +370,10 @@ int 	arrhyt_count 		= 	 0;
 
 	set_activation(ARRH_TASK);
 
-	while(quit == false){
+	while (quit == false) {
 
-		if(arr_det_activation == false){
-			if(anomaly_arrhyt == true)
+		if (arr_det_activation == false) {
+			if (anomaly_arrhyt == true)
 				anomaly_arrhyt = false;
 			wait_for_activation(ARRH_TASK);
 
@@ -425,7 +427,6 @@ int 	arrhyt_count 		= 	 0;
 		}
 		else {	
 			arrhyt_sum = 0;
-
 			anomaly_arrhyt = false;
 		}
 
@@ -446,10 +447,10 @@ int 	sum	=    0;
 
 	set_activation(FIBR_TASK);
 
-	while(quit == false){
+	while (quit == false){
 
-		if(fibr_det_activation == false){
-			if(anomaly_fibril == true)
+		if (fibr_det_activation == false){
+			if (anomaly_fibril == true)
 				anomaly_fibril = false;
 			wait_for_activation(FIBR_TASK);
 
@@ -457,12 +458,15 @@ int 	sum	=    0;
 		}
 
 		for (i = M - B; i < M ; i++) {
+
+			//printf("DATI[i] = %.2f      DATI[i-1] = %.2f\n", DATI[0][i], DATI[0][i-1]);
 			if (DATI[0][i] > (DATI[0][i-1] + FIBRIL_JUMP) || DATI[0][i] < (DATI[0][i-1] - FIBRIL_JUMP)) {
 				fibrill_vect[i - M + B] = 1;
 			}
 			else {
 				fibrill_vect[i - M + B] = 0;
 			}
+		//printf("numero = %d\n\n", fibrill_vect[i-M+B]);
 		}
 		
 		for (i = 0; i < B; i++) {
@@ -470,13 +474,14 @@ int 	sum	=    0;
 		}
 
 		//printf("SUM: %d\n", sum);
-		if (sum > FIBRIL_LIMIT) {
+		if (sum >= FIBRIL_LIMIT) {
 			anomaly_fibril = true;
 		} 
-		else{
+		else {
 			anomaly_fibril = false;
 		}
-		
+
+		sum = 0;
 		if (deadline_miss(FIBR_TASK) == 1) printf("DEADLINE MISS FIBRILLATION\n");     //soft real time
 
 		wait_for_activation(FIBR_TASK);
@@ -662,7 +667,6 @@ int	tachy_color_sim,  arrhyt_color_sim,  fibril_color_sim;
 int 	tachy_color_dect, arrhyt_color_dect, fibril_color_dect;
 
 
-
 	if (tachycardia)	 tachy_color_sim = 10;
 	else 			 tachy_color_sim = 15; 
 
@@ -671,7 +675,6 @@ int 	tachy_color_dect, arrhyt_color_dect, fibril_color_dect;
  
 	if (fibrillation)	 fibril_color_sim = 10;
 	else 			 fibril_color_sim = 15; 	
-
 
 	
 	sprintf(value_x, "Tachycardia simulation  ('t')");
@@ -698,7 +701,6 @@ int 	tachy_color_dect, arrhyt_color_dect, fibril_color_dect;
 	textout_centre_ex(screen, font, value_x, rect_coord_x1+390, rect_coord_y1 + 75, arrhyt_color_dect, -1);
 	sprintf(value_x, "Fibrillation detector ('i')");
 	textout_centre_ex(screen, font, value_x, rect_coord_x1+390, rect_coord_y1 + 95, fibril_color_dect, -1);
-
 
 }
 
@@ -760,13 +762,13 @@ int 	i	=	0;
 		//printf("[COUNT %d]\n", count);
 		for (i = 0; i < L; i++) {
 			if (fibrillation) 
-				casuale = rand()%B; 
+				casuale = rand()%Q; 
 			else
 				casuale = 0;
 
 			DATI[1][i]				=	 vettore[i] + (casuale/(rand()%100 + B));
 			DATI[1][i + L]				=	 vettore[i] + (casuale/(rand()%150 + B));
-			DATI[1][i + K]			= 	 vettore[i] + (casuale/(rand()%50 + B));
+			DATI[1][i + K]				= 	 vettore[i] + (casuale/(rand()%50 + B));
 
 		}
 		if (arrhythmia) {
@@ -847,10 +849,10 @@ char 	text[Q];
 
 			rectfill(screen, rect_coord_x1-90, rect_coord_y2-4, rect_coord_x1, rect_coord_y2+8, 0); //cancello il precedente valore BPM	
 
-			if (bpm >= 100) {
+			if (bpm >= BPM_SUP) {
 				bpm_col = 4;
 			}
-			else if (bpm < 50) {
+			else if (bpm < BPM_INF) {
 				bpm_col = 15;
 			}
 			else {
