@@ -117,8 +117,8 @@ pthread_mutex_t 	mutex = PTHREAD_MUTEX_INITIALIZER;
 //	gruppo di variabili per la grafica
 
 int		x = 1024, y = 640, col = 4;
-int		rect_coord_x1 = 160; 		// x / 4
-int		rect_coord_x2 = 640; 		// 3/4 * x 
+int		rect_coord_x1 = 160; 		// 	x / 4
+int		rect_coord_x2 = 640; 		// 	3/4 * x 
 int		rect_coord_y1 = 480;
 int		rect_coord_y2 = 120;
 
@@ -142,13 +142,13 @@ int		draw_rect();			//	funzione per il disegno del rettangolo del grafico
 void		read_command(char key);		//	interprete dei comandi inseriti dall'utente
 void 		display_command();		
 void		sampler();
-int		arrhythmia_sim();
+int		arrhythmia_computation();	// 	funzione che svolge i calcoli per il thread dell'aritmia
 void		shift();
 int		update_D1(int count);
-int 		bpm_calculation(int counter); 	//funzione per il calcolo dei bpm  
+int 		bpm_calculation(int counter); 	//	funzione per il calcolo dei bpm  
 void 		warnings();
 void		anomaly_save(float time_);	
-bool		write_anomaly();		//funzione per la scrittura su file
+bool		write_anomaly();		//	funzione per la scrittura su file
 
 // ******************************** MAIN FUNCTION *********************************
 
@@ -363,8 +363,7 @@ void *tachycardia_detector()
 void *arrhythmia_detector()
 {
 
-int 	bpm_save[Q];
-int 	arrhyt_vect[Q];
+int 	bpm_save[Q], arrhyt_vect[Q];
 int 	i	 		=	 0;
 int 	arrhyt_sum 		=	 0;
 int 	bpm_counter 		=	 0;
@@ -390,14 +389,13 @@ int 	arrhyt_count 		= 	 0;
 					bpm_counter++;
 					arrhyt_count = 0;
 				}
-				;
+				
 			}
 			else arrhyt_count++;
 
 			if (arrhyt_count >= Q) {
-				for (i = 0; i < Q; i++) {
+				for (i = 0; i < Q; i++) 
 					arrhyt_vect[i] = 0;
-				}
 			
 			anomaly_arrhyt = false;	
 			arrhyt_count = 0;
@@ -406,8 +404,8 @@ int 	arrhyt_count 		= 	 0;
 		} 	
 
 		else {
-
-			for (i = -1; i < Q -1; i++) {
+			i = 0;
+			while (bpm_save[i] > 0) {
 				printf("bpm_save[%d] = %d\n", i, bpm_save[i]);
 				if (bpm_save[i + 1] > bpm_save[i] + B*N || bpm_save[i + 1] < bpm_save[i] - B*N) {
 					arrhyt_vect[i + 1] = 1;
@@ -415,22 +413,16 @@ int 	arrhyt_count 		= 	 0;
 				else {
 					arrhyt_vect[i] = 0;
 				}
+			i++;
 			}
-			bpm_counter = 0;
 
-			for (i = 0; i < Q; i++) {
-			arrhyt_sum += arrhyt_vect[i];
-			printf("arrhyt_vect[%d] = %d\n", i, arrhyt_vect[i]); 
-			}
+			for (i = 0; i < Q; i++) 
+				arrhyt_sum += arrhyt_vect[i]; 
 		
-			printf("arrhyt_sum: %d\n", arrhyt_sum); 
-			if (arrhyt_sum >= ARRHYT_LIMIT) {
-				anomaly_arrhyt = true;
-			}
-			else {	
-				anomaly_arrhyt = false;
-			}
-			arrhyt_sum = 0;		
+			if (arrhyt_sum >= ARRHYT_LIMIT)  anomaly_arrhyt = true;
+			else 				 anomaly_arrhyt = false;
+			arrhyt_sum = 0;	
+			bpm_counter = 0;
 		}
 		
 		if (deadline_miss(ARRH_TASK) == 1) printf("DEADLINE MISS ARRHYTMIA\n");     //soft real time
@@ -473,20 +465,12 @@ int 	sum	=    0;
 		}
 		
 		if (anomaly_fibril == false){
-			printf("SUM: %d\n", sum);
-			if (sum >= FIBRIL_LIMIT) {
-				anomaly_fibril = true;
-			} 
-			else {
-				anomaly_fibril = false;
-		
-			}
+			if (sum >= FIBRIL_LIMIT)  anomaly_fibril = true;
+			else anomaly_fibril = false;
 		}
 
 		else {
-			if (sum == 0) {
-				anomaly_fibril = false;
-			}
+			if (sum == 0)  anomaly_fibril = false;
 		}
 		sum = 0;
 		if (deadline_miss(FIBR_TASK) == 1) printf("DEADLINE MISS FIBRILLATION\n");     //soft real time
@@ -881,10 +865,9 @@ char 	text[Q];
 
 //-----------------------------------------
 
-int arrhythmia_sim()
+int arrhythmia_computation()
 {
-	if ( arrhythmia == false)
-		return 1;
+	
 
 int random_sampler;
 int	i	=	0;
