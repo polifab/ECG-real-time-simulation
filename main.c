@@ -22,6 +22,7 @@
 #define 	SECOND_FOR_MINUTE	60
 #define 	SAMPLING_TIME		0.008
 #define 	SPACE			22
+#define 	CONST_FIBR		48
 
 // TASKS IDENTIFIER MACRO
 
@@ -61,12 +62,12 @@
 
 // ************* GLOBAL VARIABLES *****************
 
-bool		quit			=	false;	//	variabile di terminazione 
-bool		stop_graphics		=	true;	//	variabile per lo stop dei thread produttori e consumatori
+bool		quit			=	false;		//  variabile di terminazione 
+bool		stop_graphics		=	true;		//  variabile per lo stop dei thread produttori e consumatori
 bool		fibrillation		=	false;
 bool		tachycardia		=	false;
 bool		arrhythmia		=	false;
-bool		anomaly_fibril		=	false; 	//  variabili per la rilevazione delle anomalie
+bool		anomaly_fibril		=	false; 		//  variabili per la rilevazione delle anomalie
 bool		anomaly_tachy		=	false;
 bool		anomaly_brady		=	false;
 bool		anomaly_arrhyt		=	false;
@@ -116,21 +117,21 @@ pthread_mutex_t 	mutex = PTHREAD_MUTEX_INITIALIZER;
 //	gruppo di variabili per la grafica
 
 int		x = 1024, y = 640, col = 4;
-int		rect_coord_x1 = 160; // x / 4
-int		rect_coord_x2 = 640; // 3/4 * x 
+int		rect_coord_x1 = 160; 		// x / 4
+int		rect_coord_x2 = 640; 		// 3/4 * x 
 int		rect_coord_y1 = 480;
 int		rect_coord_y2 = 120;
 
 // ************* TASK PROTOTYPES ****************************
 
-void	*	draw_function();		//	task dedito ad aggiornare la grafica (consumatore)
-void	*	user_command();			//	task dedito alla lettura dei comandi dell'utente
-void 	* 	generatore();			//	task dedito alla generazione dei valori dell'ecg (produttore)
-void	* 	info();				//	task dedito ai calcoli relativi l'analisi dell'ecg
-void	* 	tachycardia_detector(); 		// 	task dedito alla rilevazione di anomalie del ritmo sinusale
-void	*	arrhythmia_detector(); 	// task per la rilevazione dell'aritmia
-void	*	fibrillation_detector(); 	// task per la rilevazione della fibrillazione
-void 	*	write_report(); 		//	task dedito alla scrittura su file delle anomalie riscontrate
+void		*draw_function();		//	task dedito ad aggiornare la grafica (consumatore)
+void		*user_command();		//	task dedito alla lettura dei comandi dell'utente
+void 		*generatore();			//	task dedito alla generazione dei valori dell'ecg (produttore)
+void		*info();			//	task dedito ai calcoli relativi l'analisi dell'ecg
+void		*tachycardia_detector(); 	// 	task dedito alla rilevazione di anomalie del ritmo sinusale
+void		*arrhythmia_detector(); 	// 	task per la rilevazione dell'aritmia
+void		*fibrillation_detector(); 	// 	task per la rilevazione della fibrillazione
+void 		*write_report(); 		//	task dedito alla scrittura su file delle anomalie riscontrate
 
 // ************* FUNCTION PROTOTYPES **********************
 
@@ -154,7 +155,7 @@ bool		write_anomaly();		//funzione per la scrittura su file
 int main(void)
 {
 
-	if (  init() != true)
+	if (init() != true)
 		return 1;
 
 	// tasks creation
@@ -190,7 +191,7 @@ int main(void)
 
 //***************************** TASKS IMPLEMENTATION **********************************
 
-void * user_command()
+void *user_command()
 {
 
 char	key;	//Salviamo qui il carattere inserito dall'utente
@@ -201,16 +202,16 @@ char	key;	//Salviamo qui il carattere inserito dall'utente
         key = readkey() & 0xFF;
         read_command(key);
 
-		printf("hai digitato %c\n", key);  
+	printf("hai digitato %c\n", key);  
 		
-        if (deadline_miss(USER_TASK) == 1) printf("2!\n");     //soft real time
+        if (deadline_miss(USER_TASK) == 1) printf("DEADLINE MISS USER COMMAND\n");     //soft real time
         wait_for_activation(USER_TASK);
     }
 }
 
 //-------------------------------------------------------------
 
-void * generatore()
+void  *generatore()
 {
 
 int 	count = 0;
@@ -243,7 +244,7 @@ int 	count = 0;
 
 //------------------------------------------------------------
 
-void * draw_function()
+void *draw_function()
 {
 
 int 	i;
@@ -298,7 +299,6 @@ int 	counter	= 0;
 	while (quit == false) {
 
 		if (!stop_graphics) {
-			//wait_for_activation(INFO_TASK);
 			
 			counter++;
 			bpm_calculation(counter);
@@ -310,7 +310,8 @@ int 	counter	= 0;
 			
 			warnings();
 
-			//pthread_mutex_unlock(&mutex);
+			if (deadline_miss(INFO_TASK) == 1) printf("DEADLINE MISS INFO\n");     //soft real time
+
 			wait_for_activation(INFO_TASK);
 			
 		} 
@@ -319,7 +320,7 @@ int 	counter	= 0;
 
 //-------------------------------------------------------
 
-void * tachycardia_detector()
+void *tachycardia_detector()
 {
 
 	set_activation(TACH_TASK);
@@ -348,6 +349,8 @@ void * tachycardia_detector()
 			anomaly_brady = false;
 		}
 
+		
+		if (deadline_miss(TACH_TASK) == 1) printf("DEADLINE MISS TACHYCARDIA\n");     //soft real time
 
 		wait_for_activation(TACH_TASK);
 	}	
@@ -357,7 +360,7 @@ void * tachycardia_detector()
 
 //----------------------------------------------
 
-void * arrhythmia_detector()
+void *arrhythmia_detector()
 {
 
 int 	bpm_save[Q];
@@ -367,7 +370,6 @@ int 	arrhyt_sum 		=	 0;
 int 	bpm_counter 		=	 0;
 int 	arrhyt_count 		= 	 0;
 
-
 	set_activation(ARRH_TASK);
 
 	while (quit == false) {
@@ -376,7 +378,6 @@ int 	arrhyt_count 		= 	 0;
 			if (anomaly_arrhyt == true)
 				anomaly_arrhyt = false;
 			wait_for_activation(ARRH_TASK);
-
 			continue;
 		}
 
@@ -389,57 +390,58 @@ int 	arrhyt_count 		= 	 0;
 					bpm_counter++;
 					arrhyt_count = 0;
 				}
+				;
 			}
-			
+			else arrhyt_count++;
 
 			if (arrhyt_count >= Q) {
 				for (i = 0; i < Q; i++) {
 					arrhyt_vect[i] = 0;
 				}
-			}
-			pthread_mutex_unlock(&mutex);	
-		} 
 			
+			anomaly_arrhyt = false;	
+			arrhyt_count = 0;
+			}
+			pthread_mutex_unlock(&mutex);		
+		} 	
+
 		else {
-			i = 0;
-			while (bpm_save[i] > 0) {
+
+			for (i = -1; i < Q -1; i++) {
+				printf("bpm_save[%d] = %d\n", i, bpm_save[i]);
 				if (bpm_save[i + 1] > bpm_save[i] + B*N || bpm_save[i + 1] < bpm_save[i] - B*N) {
-					arrhyt_vect[i] = 1;
+					arrhyt_vect[i + 1] = 1;
 				}
 				else {
 					arrhyt_vect[i] = 0;
 				}
-				i++;
+			}
+			bpm_counter = 0;
+
+			for (i = 0; i < Q; i++) {
+			arrhyt_sum += arrhyt_vect[i];
+			printf("arrhyt_vect[%d] = %d\n", i, arrhyt_vect[i]); 
 			}
 		
-			bpm_counter = 0;
+			printf("arrhyt_sum: %d\n", arrhyt_sum); 
+			if (arrhyt_sum >= ARRHYT_LIMIT) {
+				anomaly_arrhyt = true;
+			}
+			else {	
+				anomaly_arrhyt = false;
+			}
+			arrhyt_sum = 0;		
 		}
 		
-		for (i = 0; i < Q; i++) {
-			arrhyt_sum += arrhyt_vect[i];
-		}
-		
-		//printf("arrhyt_sum: %d\n", arrhyt_sum); 
-		if (arrhyt_sum >= ARRHYT_LIMIT) {
-			arrhyt_sum = 0;
-
-			anomaly_arrhyt = true;
-		}
-		else {	
-			arrhyt_sum = 0;
-			anomaly_arrhyt = false;
-		}
-
 		if (deadline_miss(ARRH_TASK) == 1) printf("DEADLINE MISS ARRHYTMIA\n");     //soft real time
 
 		wait_for_activation(ARRH_TASK);
-
 	}
 }
 
 //----------------------------------------------
 
-void * fibrillation_detector()
+void *fibrillation_detector()
 {
 
 int 	i 	=    0;
@@ -458,29 +460,34 @@ int 	sum	=    0;
 		}
 
 		for (i = M - B; i < M ; i++) {
-
-			//printf("DATI[i] = %.2f      DATI[i-1] = %.2f\n", DATI[0][i], DATI[0][i-1]);
 			if (DATI[0][i] > (DATI[0][i-1] + FIBRIL_JUMP) || DATI[0][i] < (DATI[0][i-1] - FIBRIL_JUMP)) {
 				fibrill_vect[i - M + B] = 1;
 			}
 			else {
 				fibrill_vect[i - M + B] = 0;
 			}
-		//printf("numero = %d\n\n", fibrill_vect[i-M+B]);
 		}
 		
 		for (i = 0; i < B; i++) {
 			sum += fibrill_vect[i];
 		}
-
-		//printf("SUM: %d\n", sum);
-		if (sum >= FIBRIL_LIMIT) {
-			anomaly_fibril = true;
-		} 
-		else {
-			anomaly_fibril = false;
+		
+		if (anomaly_fibril == false){
+			printf("SUM: %d\n", sum);
+			if (sum >= FIBRIL_LIMIT) {
+				anomaly_fibril = true;
+			} 
+			else {
+				anomaly_fibril = false;
+		
+			}
 		}
 
+		else {
+			if (sum == 0) {
+				anomaly_fibril = false;
+			}
+		}
 		sum = 0;
 		if (deadline_miss(FIBR_TASK) == 1) printf("DEADLINE MISS FIBRILLATION\n");     //soft real time
 
@@ -759,18 +766,17 @@ int 	i	=	0;
 
 	pthread_mutex_lock(&mutex);
 	if (count > UPDATE_D1) {
-		//printf("[COUNT %d]\n", count);
+
 		for (i = 0; i < L; i++) {
 			if (fibrillation) 
-				casuale = rand()%Q; 
-			else
-				casuale = 0;
-
-			DATI[1][i]				=	 vettore[i] + (casuale/(rand()%100 + B));
-			DATI[1][i + L]				=	 vettore[i] + (casuale/(rand()%150 + B));
-			DATI[1][i + K]				= 	 vettore[i] + (casuale/(rand()%50 + B));
-
+				casuale = rand()%B; 
+			else casuale = 0;	
+			
+			DATI[1][i]				=	 vettore[i] + casuale/CONST_FIBR;
+			DATI[1][i + L]				=	 vettore[i] + casuale/CONST_FIBR;
+			DATI[1][i + K]				= 	 vettore[i] + casuale/CONST_FIBR;
 		}
+		
 		if (arrhythmia) {
 
 			for (i = 25; i < 46; i++) {
@@ -877,7 +883,7 @@ char 	text[Q];
 
 int arrhythmia_sim()
 {
-	if (  arrhythmia == false)
+	if ( arrhythmia == false)
 		return 1;
 
 int random_sampler;
@@ -1016,7 +1022,7 @@ int 	j;
 		}
 
 		if (i != j) {	
-			fprintf(fw, "Aritmia rilevata tra %d e %d secondi\n", anomaly_note_arrhyt[1][i], anomaly_note_arrhyt[1][j]); 
+			fprintf(fw, "Aritmia rilevata tra %d e %d secondi\n\n", anomaly_note_arrhyt[1][i], anomaly_note_arrhyt[1][j]); 
 		}
 
 		i = j + 1;
@@ -1032,7 +1038,7 @@ int 	j;
 		}
 
 		if (i != j) {	
-			fprintf(fw, "Fibrillazione rilevata tra %d e %d secondi\n", anomaly_note_fibril[1][i], anomaly_note_fibril[1][j]); 
+			fprintf(fw, "Fibrillazione rilevata tra %d e %d secondi\n\n", anomaly_note_fibril[1][i], anomaly_note_fibril[1][j]); 
 		}
 
 		i = j + 1;
