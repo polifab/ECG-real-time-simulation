@@ -162,8 +162,8 @@ int main(void)
 
 	task_create(draw_function,		DRAW_TASK,	DRAW_PERIOD,	500,	19);
 	task_create(generatore,			GENR_TASK,	GENR_PERIOD,	500,	19);
-	task_create(user_command,		USER_TASK,	USER_PERIOD, 	 80,	20);
-	task_create(info,			INFO_TASK,	INFO_PERIOD,	300,	20);
+	task_create(user_command,		USER_TASK,	USER_PERIOD, 	200,	20);
+	task_create(info,				INFO_TASK,	INFO_PERIOD,	500,	20);
 	task_create(tachycardia_detector,	TACH_TASK,	TACH_PERIOD,	300,	20);
 	task_create(arrhythmia_detector,	ARRH_TASK,	ARRH_PERIOD,	300,	20);
 	task_create(fibrillation_detector,	FIBR_TASK,	FIBR_PERIOD,	300,	20);
@@ -199,10 +199,11 @@ char	key;	//Salviamo qui il carattere inserito dall'utente
     set_activation(USER_TASK);
 
     while (quit == false) {
-        key = readkey() & 0xFF;
-        read_command(key);
-
-	printf("hai digitato %c\n", key);  
+		if(keypressed()){
+        	key = readkey() & 0xFF;
+        	read_command(key);
+		}
+	//printf("hai digitato %c\n", key);  
 		
         if (deadline_miss(USER_TASK) == 1) printf("DEADLINE MISS USER COMMAND\n");     //soft real time
         wait_for_activation(USER_TASK);
@@ -309,12 +310,9 @@ int 	counter	= 0;
 			anomaly_save(moment);
 			
 			warnings();
-
-			if (deadline_miss(INFO_TASK) == 1) printf("DEADLINE MISS INFO\n");     //soft real time
-
-			wait_for_activation(INFO_TASK);
-			
 		} 
+		if (deadline_miss(INFO_TASK) == 1) printf("DEADLINE MISS INFO\n");     //soft real time
+		wait_for_activation(INFO_TASK);
 	}
 }
 
@@ -753,7 +751,7 @@ int 	i	=	0;
 
 		for (i = 0; i < L; i++) {
 			if (fibrillation) 
-				casuale = rand()%B; 
+				casuale = rand()%20; 
 			else casuale = 0;	
 			
 			DATI[1][i]				=	 vettore[i] + casuale/CONST_FIBR;
