@@ -85,14 +85,11 @@ bool		arr_det_activation	=	false;
 bool		fibr_det_activation	=	false;
 
 //	gruppo di variabili necessarie per la lettura/scrittura dei dati dai file
-
-char 		nome_file[M];				
+				
 float 		DATI[N][M];
 float 		vettore[M];
 float		aux_draw[M];
 float		samp[M];
-float		buff_arr[L];
-float		arr[M];
 
 //	gruppo di variabili per l'annotazione delle anomalie rilevate per la successiva scrittura su file
 
@@ -102,11 +99,9 @@ int		anomaly_note_arrhyt[N][W];
 int		anomaly_note_fibril[N][W];		
 
 //	gruppo di variabili per l'esecuzione dei calcoli		
-
-int 		picchi[B];				
+				
 int 		bpm;
 int 		read_count 	=	 0;
-int		fibrill_vect[B];
 
 //	gruppo di variabili per la scrittura su file
 
@@ -201,7 +196,7 @@ int main(void)
 //***************************** TASKS IMPLEMENTATION **********************************
 
 //---------------------------------------------------------------------------
-//  Task di lettura ed interpretazione comandi utente           
+//            Task di lettura ed interpretazione comandi utente           
 //---------------------------------------------------------------------------
 
 
@@ -225,7 +220,7 @@ char	key;	//Salviamo qui il carattere inserito dall'utente
 }
 
 //---------------------------------------------------------------------------
-//  Task di generazione del segnale simulato           
+//             Task di generazione del segnale simulato           
 //---------------------------------------------------------------------------
 
 
@@ -266,7 +261,7 @@ bool	activation;
 }
 
 //---------------------------------------------------------------------------
-//   Task per l'aggiornamento grafico del plot del segnale          
+//         Task per l'aggiornamento grafico del plot del segnale          
 //---------------------------------------------------------------------------
 
 
@@ -316,7 +311,7 @@ bool	activation;
 }
 
 //---------------------------------------------------------------------------
-//             task per la visualizzazione di informazioni
+//             Task per la visualizzazione di informazioni
 //---------------------------------------------------------------------------
 
 
@@ -352,7 +347,7 @@ bool	activation;
 }
 
 //---------------------------------------------------------------------------
-//            task per la rilevazione della tachicardia
+//            Task per la rilevazione della tachicardia
 //---------------------------------------------------------------------------
 
 
@@ -404,7 +399,7 @@ bool	activation_tachy;
 
 
 //---------------------------------------------------------------------------
-//               task per la rilevazione dell'aritmia
+//               Task per la rilevazione dell'aritmia
 //---------------------------------------------------------------------------
 
 
@@ -483,7 +478,7 @@ bool	activation_arr;
 
 
 //---------------------------------------------------------------------------
-//             task per la rilevazione della fibrillazione
+//             Task per la rilevazione della fibrillazione
 //---------------------------------------------------------------------------
 
 
@@ -492,6 +487,7 @@ void *fibrillation_detector()
 
 int 	i 	=    0;
 int 	sum	=    0;
+int	fibrill_vect[B];
 bool	activation_fibr;
 bool	activation;
 
@@ -548,23 +544,8 @@ bool	activation;
 
 
 //--------------------------------------------------------------------------
-//              
+//             Inizializzazione Allegro e lettura da file
 //--------------------------------------------------------------------------
-
-
-void init_mutex()
-{
-	if (pthread_mutex_init(&DATI_mutex, NULL) != 0) {
-        printf("\n mutex init failed\n");
-   	} else {
-		printf("\n mutex init ok\n");
-	}
-}
-
-
-//---------------------------------------------------------------------------
-//             
-//---------------------------------------------------------------------------
 
 
 bool init()
@@ -609,7 +590,7 @@ char 	value_x[DIM_VALUE_X];
 
 
 //---------------------------------------------------------------------------
-//                 caricamento da file dei valori ecg 
+//                 Caricamento da file dei valori ecg 
 //---------------------------------------------------------------------------
 
 
@@ -644,10 +625,6 @@ FILE 		*fp;
 			DATI[0][i + K] = DATI[1][i];
 		}
 		
-		for (i = 0; i < L; i++) {
-			buff_arr[i] = vettore[i];
-		}
-		
 	}	
 
 	fclose(fp);
@@ -657,7 +634,7 @@ FILE 		*fp;
 
 
 //---------------------------------------------------------------------------
-//             
+//             Funzione per il ripristino della grafica
 //---------------------------------------------------------------------------
 
 
@@ -685,7 +662,7 @@ int draw_rect()
 
 
 //---------------------------------------------------------------------------
-//      
+//          Funzione per la lettura dei comandi da tastiera
 //---------------------------------------------------------------------------
 
 
@@ -736,7 +713,7 @@ void read_command(char key)
 
 
 //---------------------------------------------------------------------------
-//               visualizzazione a video dei comandi
+//               Visualizzazione a video dei comandi
 //---------------------------------------------------------------------------
 
 
@@ -788,7 +765,7 @@ int 	tachy_color_dect, arrhyt_color_dect, fibril_color_dect;
 
 
 //---------------------------------------------------------------------------
-//           
+//                        Campionamento valori
 //---------------------------------------------------------------------------
 
 
@@ -811,7 +788,7 @@ int i = 0, j = 0;
 
 
 //---------------------------------------------------------------------------
-//          
+//                         Shift dei valori 
 //---------------------------------------------------------------------------
 
 
@@ -838,7 +815,7 @@ void shift(int count)
 
 
 //---------------------------------------------------------------------------
-//             
+//                Aggiornamento seconda riga DATI
 //---------------------------------------------------------------------------
 
 
@@ -910,7 +887,7 @@ int 	i	=	0;
 
 
 //---------------------------------------------------------------------------
-//                  calcolo dei battiti per minuto
+//                  Calcolo dei battiti per minuto
 //---------------------------------------------------------------------------
 
 
@@ -918,7 +895,7 @@ int bpm_calculation(int counter)
 {
 	
 int 	n_picchi 	= 	0;
-int 	distanza_p, i, bpm_col;
+int 	distanza_p, i, bpm_col, picchi[B];
 float 	distanza_t; //distanza temporale
 char 	text[Q];
 	
@@ -968,7 +945,7 @@ char 	text[Q];
 
 
 //---------------------------------------------------------------------------
-//                  visualizzazione a video le anomalie
+//                  Visualizzazione a video le anomalie
 //---------------------------------------------------------------------------
 
 
@@ -1008,7 +985,7 @@ char 	text[DIM_TEXT];
 
 
 //---------------------------------------------------------------------------
-//     salvataggio delle anomalie per la successiva scrittura su file
+//     Salvataggio delle anomalie per la successiva scrittura su file
 //---------------------------------------------------------------------------
 
 
@@ -1043,7 +1020,7 @@ void anomaly_save(float moment)
 
 
 //---------------------------------------------------------------------------
-//                    scrittura delle anomalie su file
+//                    Scrittura delle anomalie su file
 //---------------------------------------------------------------------------
 
 
