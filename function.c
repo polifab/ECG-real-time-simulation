@@ -240,7 +240,6 @@ int i = 0, j = 0;
 		samp[i + 59]	= DATI[1][N * i];
 		samp[i + 119]	= DATI[1][N * i];
 		samp[i + 179]	= DATI[1][N * i];
-		//printf("aux(%d) = %f\n", j, aux[j]);
 	}
 }
 
@@ -255,7 +254,6 @@ void shift(int count)
 	pthread_mutex_lock(&DATI_mutex);
 	for (int i = 0; i < M; i++) {
 		if (i < SHIFT_NUMBER ){
-			//printf("%.2f\n", DATI[0][i+10]);
 			DATI[0][i] = DATI[0][i + B];
 		}
 		else {
@@ -294,7 +292,7 @@ int 	i	=	0;
 				casuale = rand()%20; 
 			else casuale = 0;	
 			
-			DATI[1][i]					=	 vettore[i] + casuale/CONST_FIBR;
+			DATI[1][i]				=	 vettore[i] + casuale/CONST_FIBR;
 			DATI[1][i + L]				=	 vettore[i] + casuale/CONST_FIBR;
 			DATI[1][i + K]				= 	 vettore[i] + casuale/CONST_FIBR;
 		}
@@ -353,7 +351,7 @@ int bpm_calculation(int counter)
 {
 	
 int 	n_picchi 	= 	0;
-int 	distanza_p, i, bpm_col, picchi[B];
+int 	distanza_p, i, bpm_col, picchi[50];
 float 	distanza_t; //distanza temporale
 char 	text[Q];
 	
@@ -371,10 +369,10 @@ char 	text[Q];
 		pthread_mutex_unlock(&DATI_mutex);
 		
 		distanza_p = picchi[n_picchi - 1] - picchi[n_picchi - N];	//calcolo la distanza di campioni tra gli ultimi due picchi, ogni campione corrisponde a 0,008 secondi
-		distanza_t = distanza_p * SAMPLING_TIME;				
-		bpm = floor(SECOND_FOR_MINUTE/distanza_t);
-		
-		if (bpm < BPM_LIMIT && bpm > 0) {
+		distanza_t = distanza_p * SAMPLING_TIME;
+
+		if (SECOND_FOR_MINUTE/distanza_t < BPM_LIMIT & SECOND_FOR_MINUTE/distanza_t > 0) {	
+			bpm = floor(SECOND_FOR_MINUTE/distanza_t);
 
 			rectfill(screen, rect_coord_x1-90, rect_coord_y2-4, rect_coord_x1, rect_coord_y2+8, 0);   //cancello il precedente valore BPM	
 
@@ -387,10 +385,9 @@ char 	text[Q];
 			else {
 				bpm_col = 11; 		//azzurro
 			}
-			
+				
 			sprintf(text, "%d", bpm);
 			textout_centre_ex(screen, font, text, rect_coord_x1-50, rect_coord_y2, bpm_col, -1);
-		
 		}		
 
 		for (i = 0; i < n_picchi + 1; i++) 

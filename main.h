@@ -6,12 +6,13 @@
 #define		L			120		//numero di campioni per battito
 #define		B			10		//costanti utili nei calcoli
 #define 	Q			5		
-#define 	W			4000   		//dimensione della matrice in cui vengono salvate le anomalie
+#define 	W			10000  		//dimensione della matrice in cui vengono salvate le anomalie
 #define 	DIM_TEXT		48		//dimensione del testo 
 #define		DIM_VALUE_X		180		//dimensione dei valori da visualizzare
 #define 	SHIFT_NUMBER 		350		
 #define		UPDATE_D1		35		
 #define 	PICK_VALUE		0.96		//soglia per campionare i picchi
+#define 	N_PICCHI 		50		//numero di picchi che può rilevare ad ogni istanza
 #define 	SECOND_FOR_MINUTE	60		//secondi in un minuto
 #define 	SAMPLING_TIME		0.008		//inverso della frequenza di campionamento dei dati
 #define 	SPACE			22		//spazio tra due segnalazioni di anomalie
@@ -107,8 +108,12 @@ int 		fibril_c 	= 	 0;
 
 //	mutex
 
-pthread_mutex_t 	DATI_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t 	activation_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t 	DATI_mutex 		= 	PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t 	activation_mutex 	= 	PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t 	tachy_mutex 		= 	PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t 	brady_mutex 		= 	PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t 	arrhyt_mutex 		= 	PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t 	fibril_mutex 		= 	PTHREAD_MUTEX_INITIALIZER;
 
 //	gruppo di variabili per la grafica
 
