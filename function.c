@@ -587,7 +587,7 @@ int 	j, i	=    0;
 			j++;	
 		}
 		if (i != j){	
-			fprintf(fw, "Tachicardia rilevata tra %d e %d secondi\n-------------------------------\n", anomaly_note_tachy[1][i], anomaly_note_tachy[1][j]); 
+			fprintf(fw, "Tachicardia rilevata tra %d e %d secondi\n------------------------------------------\n", anomaly_note_tachy[1][i], anomaly_note_tachy[1][j]); 
 		}
 		i = j + 1;
 	}
