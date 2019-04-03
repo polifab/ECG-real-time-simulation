@@ -314,9 +314,11 @@ int 	i	=	0;
 	return count;
 }
 
+
 //---------------------------------------------------------------------------
 //                Generazione aritmia 
 //---------------------------------------------------------------------------
+
 
 void gen_arr()
 {
@@ -356,6 +358,84 @@ float	value;
 		
 	DATI[1][index_arr + K + 15]		=	DATI[1][index_arr + K] + value;	
 }
+
+
+//---------------------------------------------------------------------------
+//                  Calcolo dei battiti per minuto
+//---------------------------------------------------------------------------
+
+
+void arrhythmia_computation()
+{
+
+int i 	=   0;
+
+
+	while (bpm_save[i] > 0) {
+		if (bpm_save[i + 1] > bpm_save[i] + B*N || bpm_save[i + 1] < bpm_save[i] - B*N) 
+			arrhyt_vect[i + 1] = 1;								//conto il numero di variazioni 
+		else 
+			arrhyt_vect[i] = 0;
+		i++;
+	}
+
+	for (i = 0; i < Q; i++) 
+		arrhyt_sum += arrhyt_vect[i]; 						//se le variazioni sono tante si suppone che ci sia aritmia
+
+	if (arrhyt_sum >= ARRHYT_LIMIT) {
+		anomaly_arrhyt = true;
+	}
+
+	else {
+		anomaly_arrhyt = false;
+	}
+
+	arrhyt_sum = 0;	
+	bpm_counter = 0;
+
+}
+
+
+//---------------------------------------------------------------------------
+//                  Calcolo dei battiti per minuto
+//---------------------------------------------------------------------------
+
+
+void fibrillation_computation()
+{
+
+int i 	=   0;
+
+
+	for (i = M - B; i < M ; i++) {
+		if (DATI[0][i] > (DATI[0][i-1] + FIBRIL_JUMP) || DATI[0][i] < (DATI[0][i-1] - FIBRIL_JUMP)) {	 //guardo le variazioni tra un campione ed il precedente
+			fibrill_vect[i - M + B] = 1;									//se superano la soglia scrivo 1 nel vettore	
+		}													//altrimenti scrivo 0
+		else {
+			fibrill_vect[i - M + B] = 0;
+		}
+	}
+			
+	pthread_mutex_lock(&fibril_mutex);
+
+	for (i = 0; i < B; i++) 								//calcolo il numero di volte che la variazione ha superato la soglia
+		sum += fibrill_vect[i];
+	
+	if (anomaly_fibril == false){
+		if (sum >= FIBRIL_LIMIT)  anomaly_fibril = true;
+		else anomaly_fibril = false;
+	}
+
+	else {
+		if (sum == 0)  anomaly_fibril = false;
+	}
+
+	pthread_mutex_unlock(&fibril_mutex);
+	sum = 0;
+
+}
+
+
 //---------------------------------------------------------------------------
 //                  Calcolo dei battiti per minuto
 //---------------------------------------------------------------------------
@@ -365,7 +445,7 @@ int bpm_calculation(int counter)
 {
 	
 int 	n_picchi 	= 	0;
-int 	distanza_p, i, bpm_col, picchi[50];
+int 	distanza_p, i, bpm_col, picchi[N_PICCHI];
 float 	distanza_t; //distanza temporale
 char 	text[Q];
 	
@@ -507,8 +587,7 @@ int 	j, i	=    0;
 			j++;	
 		}
 		if (i != j){	
-			fprintf(fw, "Tachicardia rilevata tra %d e %d secondi\n", anomaly_note_tachy[1][i], anomaly_note_tachy[1][j]); 
-			fprintf(fw, "------------------------------------------\n");
+			fprintf(fw, "Tachicardia rilevata tra %d e %d secondi\n-------------------------------\n", anomaly_note_tachy[1][i], anomaly_note_tachy[1][j]); 
 		}
 		i = j + 1;
 	}
@@ -521,8 +600,7 @@ int 	j, i	=    0;
 			j++;
 		}
 		if (i != j) {	
-			fprintf(fw, "Bradicardia rilevata tra %d e %d secondi\n", anomaly_note_brady[1][i], anomaly_note_brady[1][j]); 
-			fprintf(fw, "------------------------------------------\n");
+			fprintf(fw, "Bradicardia rilevata tra %d e %d secondi\n------------------------------------------\n", anomaly_note_brady[1][i], anomaly_note_brady[1][j]); 
 		}
 		i = j + 1;
 	}
@@ -535,8 +613,7 @@ int 	j, i	=    0;
 			j++;
 		}
 		if (i != j) {	
-			fprintf(fw, "Aritmia rilevata tra %d e %d secondi\n", anomaly_note_arrhyt[1][i], anomaly_note_arrhyt[1][j]); 
-			fprintf(fw, "------------------------------------------\n");
+			fprintf(fw, "Aritmia rilevata tra %d e %d secondi\n------------------------------------------\n", anomaly_note_arrhyt[1][i], anomaly_note_arrhyt[1][j]); 
 		}
 		i = j + 1;
 	}
@@ -549,8 +626,7 @@ int 	j, i	=    0;
 			j++;
 		}
 		if (i != j) {	
-			fprintf(fw, "Fibrillazione rilevata tra %d e %d secondi\n", anomaly_note_fibril[1][i], anomaly_note_fibril[1][j]); 
-			fprintf(fw, "------------------------------------------\n");
+			fprintf(fw, "Fibrillazione rilevata tra %d e %d secondi\n------------------------------------------\n", anomaly_note_fibril[1][i], anomaly_note_fibril[1][j]); 
 		}
 		i = j + 1;
 	}

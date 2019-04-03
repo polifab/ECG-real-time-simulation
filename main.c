@@ -270,10 +270,7 @@ bool	activation_tachy;
 void *arrhythmia_detector()
 {
 
-int 	bpm_save[Q], arrhyt_vect[Q], i	=  0;
-int 	arrhyt_sum 		=	 0;
-int 	bpm_counter 		=	 0;
-int 	arrhyt_count 		= 	 0;
+int 	i   =   0;
 bool	activation, activation_arr;
 
 	set_activation(ARRH_TASK);
@@ -317,22 +314,7 @@ bool	activation, activation_arr;
 				pthread_mutex_unlock(&DATI_mutex);		
 			} 	
 			else {
-				i = 0;
-				while (bpm_save[i] > 0) {
-					if (bpm_save[i + 1] > bpm_save[i] + B*N || bpm_save[i + 1] < bpm_save[i] - B*N) 
-						arrhyt_vect[i + 1] = 1;								//conto il numero di variazioni 
-					else 
-						arrhyt_vect[i] = 0;
-					i++;
-				}
-
-				for (i = 0; i < Q; i++) 
-					arrhyt_sum += arrhyt_vect[i]; 						//se le variazioni sono tante si suppone che ci sia aritmia
-			
-				if (arrhyt_sum >= ARRHYT_LIMIT)  anomaly_arrhyt = true;
-				else 				 anomaly_arrhyt = false;
-				arrhyt_sum = 0;	
-				bpm_counter = 0;
+				arrhythmia_computation();
 			}
 			pthread_mutex_unlock(&arrhyt_mutex);
 		}
@@ -350,11 +332,8 @@ bool	activation, activation_arr;
 void *fibrillation_detector()
 {
 
-int 	i 	=    0;
-int 	sum	=    0;
-int	fibrill_vect[B];
-bool	activation_fibr;
-bool	activation;
+int 	i   =   0;
+bool	activation_fibr, activation;
 
 	set_activation(FIBR_TASK);
 
@@ -375,29 +354,8 @@ bool	activation;
 				continue;
 			}
 			
-			for (i = M - B; i < M ; i++) {
-				if (DATI[0][i] > (DATI[0][i-1] + FIBRIL_JUMP) || DATI[0][i] < (DATI[0][i-1] - FIBRIL_JUMP)) {	 //guardo le variazioni tra un campione ed il precedente
-					fibrill_vect[i - M + B] = 1;									//se superano la soglia scrivo 1 nel vettore	
-				}													//altrimenti scrivo 0
-				else {
-					fibrill_vect[i - M + B] = 0;
-				}
-			}
-			
-			pthread_mutex_lock(&fibril_mutex);
-			for (i = 0; i < B; i++) 								//calcolo il numero di volte che la variazione ha superato la soglia
-				sum += fibrill_vect[i];
-			
-			if (anomaly_fibril == false){
-				if (sum >= FIBRIL_LIMIT)  anomaly_fibril = true;
-				else anomaly_fibril = false;
-			}
+			fibrillation_computation(); 	//funzione che svolge i calcoli
 
-			else {
-				if (sum == 0)  anomaly_fibril = false;
-			}
-			pthread_mutex_unlock(&fibril_mutex);
-			sum = 0;
 		}
 		if (deadline_miss(FIBR_TASK) == 1) printf("DEADLINE MISS FIBRILLATION\n");     //soft real time
 

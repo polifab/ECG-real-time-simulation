@@ -10,7 +10,7 @@
 #define 	K			240		// 2*L
 #define		B			10		//costanti utili nei calcoli
 #define 	Q			5		
-#define 	W			10000  		//dimensione della matrice in cui vengono salvate le anomalie
+#define 	W			20000  		//dimensione della matrice in cui vengono salvate le anomalie
 #define 	DIM_TEXT		48		//dimensione del testo 
 #define		DIM_VALUE_X		180		//dimensione dei valori da visualizzare
 #define 	SHIFT_NUMBER 		350		
@@ -101,7 +101,14 @@ int		anomaly_note_fibril[N][W];
 //	gruppo di variabili per l'esecuzione dei calcoli		
 				
 int 		bpm;
-int 		read_count 	=	 0;
+int 		read_count 	=	 0;			
+int 		bpm_counter 	=    	 0;
+int		arrhyt_count 	=    	 0;			//variabili per la rilevazione dell'aritmia
+int		arrhyt_sum 	=   	 0;
+int 		bpm_save[Q];
+int		arrhyt_vect[Q];
+int		sum		=    	 0;  			//variabili per la rilevazione della fibrillazione
+int		fibrill_vect[B];        
 
 //	gruppo di variabili per la scrittura su file
 
@@ -152,7 +159,8 @@ void		read_command(char key);		//	interprete dei comandi inseriti dall'utente
 void 		display_command();		//	mostra i comandi
 void		sampler();			//	campionamento per tachicardia
 void 		gen_arr();			//	generazione aritmia
-int		arrhythmia_computation();	// 	funzione che svolge i calcoli per il thread dell'aritmia
+void		arrhythmia_computation();	// 	funzione che svolge i calcoli per il thread dell'aritmia
+void		fibrillation_computation();	//	funzione che svolge i calcoli per il thread della fibrillazione
 void		shift();			//	shift dei dati
 int		update_D1(int count);		//	aggiornamento del vettore DATI[1], utilizzato per il plottaggio
 int 		bpm_calculation(int counter); 	//	funzione per il calcolo dei bpm  
