@@ -1,5 +1,9 @@
-// ********************** FUNCTIONS IMPLEMENTATION *****************************
+/*					FUNCTION.C				*/
 
+
+/*******************************************************************************/
+/************************ FUNCTIONS IMPLEMENTATION *****************************/
+/*******************************************************************************/
 
 //--------------------------------------------------------------------------
 //             Inizializzazione Allegro e lettura da file
@@ -177,12 +181,10 @@ void read_command(char key)
 
 void display_command()
 {
-
 char 	text[DIM_TEXT];
 char 	value_x[DIM_VALUE_X];
 int	tachy_color_sim,  arrhyt_color_sim,  fibril_color_sim;
 int 	tachy_color_dect, arrhyt_color_dect, fibril_color_dect;
-
 
 	if (tachycardia)	 tachy_color_sim = 10;		//i tasti attivati diventano verdi (10)
 	else 			 tachy_color_sim = 15; 		//altrimenti rimangono bianchi (15)
@@ -193,14 +195,12 @@ int 	tachy_color_dect, arrhyt_color_dect, fibril_color_dect;
 	if (fibrillation)	 fibril_color_sim = 10;
 	else 			 fibril_color_sim = 15; 	
 
-	
 	sprintf(value_x, "Tachycardia simulation  ('t')");
 	textout_centre_ex(screen, font, value_x, rect_coord_x1+70, rect_coord_y1 + 55, tachy_color_sim, -1);
 	sprintf(value_x, "Arrhythmia simulation   ('a')");
 	textout_centre_ex(screen, font, value_x, rect_coord_x1+70, rect_coord_y1 + 75, arrhyt_color_sim, -1);
 	sprintf(value_x, "Fibrillation simulation ('f')");
 	textout_centre_ex(screen, font, value_x, rect_coord_x1+70, rect_coord_y1 + 95, fibril_color_sim, -1);
-
 
 	if (tachy_det_activation) tachy_color_dect = 10;
 	else 			  tachy_color_dect = 15; 
@@ -211,14 +211,12 @@ int 	tachy_color_dect, arrhyt_color_dect, fibril_color_dect;
 	if (fibr_det_activation) fibril_color_dect = 10;
 	else 			 fibril_color_dect = 15; 	
 
-
 	sprintf(value_x, "Tachycardia detector  ('k')");
 	textout_centre_ex(screen, font, value_x, rect_coord_x1+390, rect_coord_y1 + 55, tachy_color_dect, -1);
 	sprintf(value_x, "Arrhythmia detector   ('d')");
 	textout_centre_ex(screen, font, value_x, rect_coord_x1+390, rect_coord_y1 + 75, arrhyt_color_dect, -1);
 	sprintf(value_x, "Fibrillation detector ('i')");
 	textout_centre_ex(screen, font, value_x, rect_coord_x1+390, rect_coord_y1 + 95, fibril_color_dect, -1);
-
 }
 
 
@@ -279,13 +277,13 @@ int update_D1(int count)
 {
 
 float 	casuale; 
-float	value;
-int	index_arr;
 int 	i	=	0;
 
 
 	pthread_mutex_lock(&DATI_mutex);
 	if (count > UPDATE_D1) {
+
+		/** GESTIONE FIBRILLAZIONE **/
 
 		for (i = 0; i < L; i++) {
 			if (fibrillation) 
@@ -297,40 +295,15 @@ int 	i	=	0;
 			DATI[1][i + K]				= 	 vettore[i] + casuale/CONST_FIBR;
 		}
 		
+		/** GESTIONE GENERAZIONE ARITMIA **/
+
 		if (arrhythmia) {
-
-			for (i = 25; i < 46; i++) {
-					value 				= 	0.1 + (rand()%B)/100.0;
-					DATI[1][i] 	 		= 	value; 
-					DATI[1][i + L]	 		= 	value; 
-					DATI[1][i + K]	 		= 	value; 			
-			}
-			index_arr	=	(rand()*11)%70;
-			value		=	0.9;
-			DATI[1][index_arr + 30]			=	DATI[1][index_arr + 49] + 0.15;
-			DATI[1][index_arr + 31]			=	DATI[1][index_arr + 50] + 0.2;
-			DATI[1][index_arr + 32]			=	DATI[1][index_arr + 51] + 0.15;
-
-			DATI[1][index_arr + 15]			=	DATI[1][index_arr + 60] + value;
-
-			index_arr	=	(rand()*34)%70;
-
-			DATI[1][index_arr + L + 30]		=	DATI[1][index_arr + L + 49] + 0.15;
-			DATI[1][index_arr + L + 31]		=	DATI[1][index_arr + L + 50] + 0.2;
-			DATI[1][index_arr + L + 32]		=	DATI[1][index_arr + L + 51] + 0.15;
-
-			DATI[1][index_arr + L + 15]		=	DATI[1][index_arr + L + 60] + value;
-
-			index_arr	=	(rand()*27)%70;
-
-			DATI[1][index_arr + K + 30]		=	DATI[1][index_arr + K + 49] + 0.15;
-			DATI[1][index_arr + K + 31]		=	DATI[1][index_arr + K + 49] + 0.2;
-			DATI[1][index_arr + K + 32]		=	DATI[1][index_arr + K + 49] + 0.15;
-
-			
-			DATI[1][index_arr + K + 15]		=	DATI[1][index_arr + K] + value;	
+			gen_arr();
 
 		}
+
+		/** GESTIONE GENERAZIONE TACHICARDIA **/
+
 		if (tachycardia) {
 			sampler();
 		}
@@ -341,7 +314,48 @@ int 	i	=	0;
 	return count;
 }
 
+//---------------------------------------------------------------------------
+//                Generazione aritmia 
+//---------------------------------------------------------------------------
 
+void gen_arr()
+{
+
+int	index_arr,	i;
+float	value;
+
+	for (i = 25; i < 46; i++) {
+		value 				= 	0.1 + (rand()%B)/100.0;
+		DATI[1][i] 	 		= 	value; 
+		DATI[1][i + L]	 		= 	value; 
+		DATI[1][i + K]	 		= 	value; 			
+	}
+
+	index_arr	=	(rand()*11)%70;
+	value		=	0.9;
+
+	DATI[1][index_arr + 30]			=	DATI[1][index_arr + 49] + 0.15;
+	DATI[1][index_arr + 31]			=	DATI[1][index_arr + 50] + 0.2;
+	DATI[1][index_arr + 32]			=	DATI[1][index_arr + 51] + 0.15;
+
+	DATI[1][index_arr + 15]			=	DATI[1][index_arr + 60] + value;
+
+	index_arr	=	(rand()*34)%70;
+
+	DATI[1][index_arr + L + 30]		=	DATI[1][index_arr + L + 49] + 0.15;
+	DATI[1][index_arr + L + 31]		=	DATI[1][index_arr + L + 50] + 0.2;
+	DATI[1][index_arr + L + 32]		=	DATI[1][index_arr + L + 51] + 0.15;
+
+	DATI[1][index_arr + L + 15]		=	DATI[1][index_arr + L + 60] + value;
+
+	index_arr	=	(rand()*27)%70;
+
+	DATI[1][index_arr + K + 30]		=	DATI[1][index_arr + K + 49] + 0.15;
+	DATI[1][index_arr + K + 31]		=	DATI[1][index_arr + K + 49] + 0.2;
+	DATI[1][index_arr + K + 32]		=	DATI[1][index_arr + K + 49] + 0.15;
+		
+	DATI[1][index_arr + K + 15]		=	DATI[1][index_arr + K] + value;	
+}
 //---------------------------------------------------------------------------
 //                  Calcolo dei battiti per minuto
 //---------------------------------------------------------------------------
@@ -355,20 +369,17 @@ int 	distanza_p, i, bpm_col, picchi[50];
 float 	distanza_t; //distanza temporale
 char 	text[Q];
 	
-
 	if (counter > 1) {
 		pthread_mutex_lock(&DATI_mutex);
-
 		for (i = 0; i < M; i++) {
 				if (DATI[0][i] > PICK_VALUE) {
 					picchi[n_picchi] = i;
 					n_picchi++;
 				}
 			}
-
 		pthread_mutex_unlock(&DATI_mutex);
 		
-		distanza_p = picchi[n_picchi - 1] - picchi[n_picchi - N];	//calcolo la distanza di campioni tra gli ultimi due picchi, ogni campione corrisponde a 0,008 secondi
+		distanza_p = picchi[n_picchi - 1] - picchi[n_picchi - 2];	//calcolo la distanza di campioni tra gli ultimi due picchi, ogni campione corrisponde a 0,008 secondi
 		distanza_t = distanza_p * SAMPLING_TIME;
 
 		if (SECOND_FOR_MINUTE/distanza_t < BPM_LIMIT & SECOND_FOR_MINUTE/distanza_t > 0) {	
@@ -394,7 +405,6 @@ char 	text[Q];
 			picchi[i] = 0;
 		counter = 0;
 	}
-	
 	return counter;
 }
 
@@ -511,7 +521,7 @@ int 	j, i	=    0;
 			j++;
 		}
 		if (i != j) {	
-			fprintf(fw, "Braducardia rilevata tra %d e %d secondi\n", anomaly_note_brady[1][i], anomaly_note_brady[1][j]); 
+			fprintf(fw, "Bradicardia rilevata tra %d e %d secondi\n", anomaly_note_brady[1][i], anomaly_note_brady[1][j]); 
 			fprintf(fw, "------------------------------------------\n");
 		}
 		i = j + 1;
@@ -548,6 +558,4 @@ int 	j, i	=    0;
 	fclose(fw);
 }
 
-
-
-
+/******************************************* END OF FILE ****************************************************/

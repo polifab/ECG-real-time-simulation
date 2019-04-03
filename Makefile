@@ -1,7 +1,7 @@
 CC=gcc
 CFLAHS=-I.
 DEPS = task.h
-LIBS = -lm -lpthread `allegro-config --cflags --libs`
+LIBS = -lm -lpthread -Wall `allegro-config --cflags --libs`
 OBJ = main.o task.o
 
 %.o: %.c $(DEPS)

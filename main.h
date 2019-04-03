@@ -1,9 +1,13 @@
 /*					MAIN.H								*/
 
+/*******************************************************/
+/****************** MACRO ******************************/
+/*******************************************************/
+
 #define 	N 			2		//numero delle righe della matrice DATI
 #define 	M 			360		//numero delle colonne della matrice DATI
-#define 	K			240		
 #define		L			120		//numero di campioni per battito
+#define 	K			240		// 2*L
 #define		B			10		//costanti utili nei calcoli
 #define 	Q			5		
 #define 	W			10000  		//dimensione della matrice in cui vengono salvate le anomalie
@@ -54,7 +58,9 @@
 #define 	TACHYCARDIA_CODE 	85
 #define 	BRADYCARDIA_CODE 	95
 
-// ************* GLOBAL VARIABLES *****************
+/*******************************************************/
+/************* GLOBAL VARIABLES ************************/
+/*******************************************************/
 
 bool		quit			=	false;		//  variabile di terminazione 
 bool		stop_graphics		=	true;		//  variabile per lo stop dei thread produttori e consumatori
@@ -123,7 +129,9 @@ int		rect_coord_x2 = 640; 		// 	3/4 * x
 int		rect_coord_y1 = 480;
 int		rect_coord_y2 = 120;
 
-// ************* TASK PROTOTYPES ****************************
+/*******************************************************/
+/****************** TASK PROTOTYPES ********************/
+/*******************************************************/
 
 void		*draw_task();			//	task dedito ad aggiornare la grafica (consumatore)
 void		*user_command();		//	task dedito alla lettura dei comandi dell'utente
@@ -133,20 +141,23 @@ void		*tachycardia_detector(); 	// 	task dedito alla rilevazione di anomalie del
 void		*arrhythmia_detector(); 	// 	task per la rilevazione dell'aritmia
 void		*fibrillation_detector(); 	// 	task per la rilevazione della fibrillazione
 
-// ************* FUNCTION PROTOTYPES **********************
+/*******************************************************/
+/************ FUNCTION PROTOTYPES **********************/
+/*******************************************************/
 
-bool		init();				//	funzione di inizializzazione di dati, variabili e grafica
-void		init_mutex();					
-bool		carica_matrice();
+bool		init();				//	funzione di inizializzazione di dati, variabili e grafica		
+bool		carica_matrice();		//	carica ad inizio programma i dati
 int		draw_rect();			//	funzione per il disegno del rettangolo del grafico
 void		read_command(char key);		//	interprete dei comandi inseriti dall'utente
-void 		display_command();		
-void		sampler();
+void 		display_command();		//	mostra i comandi
+void		sampler();			//	campionamento per tachicardia
+void 		gen_arr();			//	generazione aritmia
 int		arrhythmia_computation();	// 	funzione che svolge i calcoli per il thread dell'aritmia
-void		shift();
-int		update_D1(int count);
+void		shift();			//	shift dei dati
+int		update_D1(int count);		//	aggiornamento del vettore DATI[1], utilizzato per il plottaggio
 int 		bpm_calculation(int counter); 	//	funzione per il calcolo dei bpm  
-void 		warnings();
-void		anomaly_save(float time_);	
-bool		write_anomaly();		//	funzione per la scrittura su file
+void 		warnings();			//	mostra i messaggi di warnings sulla colonna a destra
+void		anomaly_save(float time_);	//	registra i warning sulle anomalie
+bool		write_anomaly();		//	funzione per la scrittura su file delle anomalie
 
+/******************************************* END OF FILE ****************************************************/

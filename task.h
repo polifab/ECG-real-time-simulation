@@ -1,8 +1,10 @@
+/*					TASK.H					*/
+
 #include<time.h>
 #include <pthread.h>
 #include <stdio.h>
 
-#define NT	7
+#define NT	7 // numero di task
 
 struct task_par {
     int     arg;
@@ -44,4 +46,4 @@ int task_create(
 	int prio
 	);
 
-
+/******************************************* END OF FILE ****************************************************/

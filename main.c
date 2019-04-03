@@ -1,3 +1,7 @@
+/***************************************************************************/
+/* MAIN.C ECG RTS PROJECT, WRITTEN BY FABIO POLISANO AND ANTONIO MANUELE   */
+/***************************************************************************/
+
 #include 	<stdio.h>
 #include 	<stdlib.h>
 #include 	<pthread.h>
@@ -8,7 +12,9 @@
 #include	"main.h"
 #include	"function.c"
 
-// ******************************** MAIN FUNCTION *********************************
+/******************************************************************************/
+/******************************* MAIN FUNCTION ********************************/
+/******************************************************************************/
 
 int main(void)
 {
@@ -25,6 +31,7 @@ int main(void)
 	task_create(tachycardia_detector,	TACH_TASK,	TACH_PERIOD,	300,	20);
 	task_create(arrhythmia_detector,	ARRH_TASK,	ARRH_PERIOD,	300,	20);
 	task_create(fibrillation_detector,	FIBR_TASK,	FIBR_PERIOD,	300,	20);
+
 	// tasks joining
 
 	pthread_join(tid[DRAW_TASK],NULL);
@@ -49,7 +56,9 @@ int main(void)
 
 
 
-//***************************** TASKS IMPLEMENTATION **********************************
+/******************************************************************************/
+/************************* TASK IMPLEMENTATION ********************************/
+/******************************************************************************/
 
 //---------------------------------------------------------------------------
 //            Task di lettura ed interpretazione comandi utente           
@@ -160,10 +169,8 @@ bool	activation;
 		} 
 	
 		if (deadline_miss(DRAW_TASK) == 1) printf("DEADLINE MISS DRAW\n");     //soft real time
-
 		wait_for_activation(DRAW_TASK);
-	}
-	
+	}	
 	return NULL;
 }
 
@@ -251,7 +258,6 @@ bool	activation_tachy;
 
 		wait_for_activation(TACH_TASK);
 	}	
-	
 	
 }
 
@@ -399,24 +405,4 @@ bool	activation;
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/******************************************* END OF FILE ****************************************************/

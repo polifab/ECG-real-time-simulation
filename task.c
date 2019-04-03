@@ -1,3 +1,5 @@
+/*					TASK.C					*/
+
 #ifndef TASK_H
 #define TASK_H
 #include "task.h"
@@ -88,7 +90,6 @@ int	tret;
 	err = pthread_attr_setschedpolicy(&myatt, SCHED_FIFO);
 	if(err != 0){ printf("ERROR POLICY = %d", err);}
 	mypar.sched_priority = tp[i].priority;
-	//printf("priority = %d\n", tp[i].priority);
 	err = pthread_attr_setschedparam(&myatt, &mypar);
 	if(err != 0){ printf("ERROR PARAM = %d", err);}
 	printf("Creazione thread\n");
@@ -101,34 +102,6 @@ int	tret;
 	return tret;
 }
 
-/*
-void startTimer() {
-    clock_gettime(CLOCK_REALTIME, &start); 
-}
-
-long getTimer() {
-    clock_gettime(CLOCK_REALTIME, &finish); 
-
-    long seconds = finish.tv_sec - start.tv_sec; 
-    long ns = finish.tv_nsec - start.tv_nsec; 
-
-    if (start.tv_nsec > finish.tv_nsec) {
-        --seconds; 
-        ns += 1000000000; 
-    } 
-//    printf("\t\tseconds without ns: %ld\n", seconds); 
-//    printf("\t\tnanoseconds: %ld\n", ns);
-    return ns;
-}
-
-
-void _startTimer() {
-    tstart = time(NULL);
-}
-
-void _getTimer() {
-    tend=time(NULL);
-//    printf("\nHo finito, ho impiegato %f secondi ", difftime(tend,tstart));
-}
-*/
 #endif
+
+/******************************************* END OF FILE ****************************************************/
